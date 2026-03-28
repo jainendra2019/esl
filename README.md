@@ -89,6 +89,10 @@ Generated **`runs/`** is gitignored; reproduce figures locally with the commands
 
 - **`PRD.md`** — product / algorithm requirements used to align implementation and tests.
 
+## License
+
+Released under the **MIT License** (see **`LICENSE`**): open and permissive, with **no warranty** and **no liability** for use of the software. Intended especially for **research and academic** work; cite the project or paper when appropriate.
+
 ## Citation
 
 If you use this code in research, please cite the accompanying paper when available and link this repository.
