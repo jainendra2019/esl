@@ -75,8 +75,13 @@ def build_hidden_policy(type_index: int) -> HiddenPolicy:
 
 def true_type_distributions(num_types: int) -> np.ndarray:
     """
-    Shape (K, 2): rows are p(a|type k). Built-in behaviors cycle AC, AD, AC, …
-    when K > 2 (redundant prototype / over-parameterized tests).
+    Shape (K, 2): row k is p(a | nominal type k) used for Hungarian CE / metrics.
+
+    **Learned prototypes** count is K = ``num_types`` here. **Behavioral** templates
+    in v1 are only Always C / Always D; for K > 2 rows **cycle** those policies
+    (k mod n_behavioral), matching over-parameterized and edge tests. Agent-level
+    ``true_types`` in the trainer still live in 0..K-1; hidden policies use
+    ``type_index % n_behavioral`` when building ``HiddenPolicy`` instances.
     """
     if num_types < 1:
         raise ValueError("num_types must be >= 1")

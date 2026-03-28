@@ -1,4 +1,7 @@
-"""Training loop: recovery and adaptation modes, batching, logging hooks."""
+"""Training loop: recovery and adaptation modes, batching, logging hooks.
+
+Implementation-level pseudocode (faithful to this file) lives in **ALGORITHM.md** at repo root.
+"""
 
 from __future__ import annotations
 
@@ -45,7 +48,10 @@ def prototype_sgd_step_from_batch(
     prototype_step_m: int,
 ) -> tuple[np.ndarray, float]:
     """
-    §4.11: sum batch gradients, average over batch length |B|, then θ ← θ + γ_m * mean.
+    §4.11: For each record with w > 0, accumulate per-prototype gradients
+    g_k = w · b_snap[k] · (e_s − softmax(θ_k)); then **mean over full |batch|**
+    (records with w ≤ 0 contribute 0 to the sum but still increase the divisor).
+    Finally θ ← θ + γ_m · g_mean.
     """
     g_accum = np.zeros_like(logits)
     for rec in batch:
@@ -71,7 +77,12 @@ def observe_signal_update_belief(
     cfg: ESLConfig,
 ) -> BatchRecord:
     """
-    PRD §7 ordering: observe -> Bayes B_t->B_{t+1} -> return batch row with frozen b_{i->j,t}.
+    PRD §7 ordering: snapshot b_{i→j,t} → (if w>0) Bayes update to B_{t+1} → return BatchRecord.
+
+    Always returns a record with pre-update ``b_ij`` in the batch row. When ``w == 0``,
+    beliefs are unchanged and the record still carries ``w=0`` so the caller can append it;
+    ``prototype_sgd_step_from_batch`` skips gradient from such rows but they still count
+    toward the batch-length denominator for the mean gradient.
     """
     b_ij_t = belief_tensor[i, j].copy()
     if w > 0:
@@ -192,8 +203,13 @@ def run_esl(
     run_dir: Path | None = None,
 ) -> tuple[RunLog, np.ndarray, np.ndarray, dict[str, Any], Path]:
     """
-    Main ESL loop. Recovery (§5): one random ordered pair (i,j) per round; signal s=a_j;
-    hidden policies are fixed and never trained (§3 Mode A). Belief/batch/prototype ordering §7.
+    Main ESL loop. **Recovery:** actions from fixed ``hidden_policies`` only (never ``act_agent``).
+    **Adaptation:** actions from ``act_agent`` (ESL softmax best response vs beliefs + θ).
+
+    One random ordered pair (i,j) per round unless ``force_ordered_pair`` is set; signal s = a_j.
+    Belief / batch / prototype ordering: see PRD §7 and **ALGORITHM.md**.
+
+    If ``learning_frozen``: no Bayes updates and no batch appends (beliefs stay at init).
     """
     cfg.validate()
     rng = cfg.make_rng()

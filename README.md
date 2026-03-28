@@ -128,6 +128,7 @@ Generated **`runs/`** is gitignored; reproduce figures locally with the commands
 ## Documentation
 
 - **`PRD.md`** — product / algorithm requirements used to align implementation and tests.
+- **`ALGORITHM.md`** — implementation-faithful pseudocode (recovery vs adaptation, batch/`w`, gradients, logging).
 
 ## License
 

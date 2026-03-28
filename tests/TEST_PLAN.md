@@ -28,8 +28,14 @@
 | V9 | `test_v9_belief_likelihood_cooperate_shifts_posterior` | Observe C ⇒ mass on C-like prototype up |
 | V10 | `test_v10_single_prototype_step_increases_likelihood_of_signal` | SGD step increases L(signal) |
 | V11 | `test_v11_deterministic_seed_reproducibility` | Same seed ⇒ same logits + summary |
+| V12 | `test_v12_batch_appends_w_zero_and_dilutes_mean_gradient` | `w=0` rows add no grad but count in mean denominator (**ALGORITHM.md**) |
+| V13 | `test_v13_weighted_gradient_equals_w_times_b_times_es_minus_p` | Batch grad = `w · b_snap[k] · (e_s − p_k)` per prototype |
+| V14 | `test_v14_true_type_distributions_cycles_behaviors_when_k_gt_2` | `true_type_distributions(K)` cycles AC/AD when K>2 |
+| V15 | `test_v15_recovery_mode_never_calls_act_agent` | Recovery path never invokes `act_agent` |
+| V16 | `test_v16_adaptation_mode_calls_act_agent` | Adaptation path invokes `act_agent` each pair play |
 | HT1 | `test_hand_trace_*` in `test_hand_trace_always_defect.py` | Defect + **Cooperate mirror**: fixed θ; beliefs vs isolated Bayes; entropy ↓; P(C) rises under s=0 batch |
 | — | `python -m esl.hand_trace` / `--cooperate` | CSV + prototype update log for Defect or Cooperate stream |
+| — | **`ALGORITHM.md`** (repo root) | Implementation-faithful pseudocode; keep in sync with `trainer.py` |
 
 ## 2. Validation (`@pytest.mark.validation`)
 
