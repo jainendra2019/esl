@@ -223,7 +223,8 @@ def _belief_metric_rows(
                 return float(br[f"b_{k}"])
         return float("nan")
 
-    for t in range(0, cfg.num_rounds, csv_every):
+    n_exec = len(log.summary_rows)
+    for t in range(0, n_exec, csv_every):
         srow = log.summary_rows[t]
         if p_obs >= 1.0:
             obs_count = t + 1
@@ -265,11 +266,15 @@ def save_condition_outputs(run: dict[str, Any], out_dir: Path, *, csv_every: int
 
     cfg.save_json(out_dir / "config.json")
 
+    n_exec = len(run["log"].summary_rows)
     learned = stable_softmax(run["logits"])
     summary_payload = {
         "condition": label,
         "seed": seed,
         "num_rounds": cfg.num_rounds,
+        "num_rounds_executed": int(run["summary"].get("num_rounds_executed", n_exec)),
+        "stopped_on_convergence": bool(run["summary"].get("stopped_on_convergence", False)),
+        "convergence_round": run["summary"].get("convergence_round"),
         "prototype_update_every": cfg.prototype_update_every,
         "prototype_update_count": int(run["summary"]["prototype_update_count"]),
         "learning_frozen": cfg.learning_frozen,
