@@ -39,6 +39,45 @@ pytest -q --runslow
 
 See **`tests/TEST_PLAN.md`** for the verification vs. validation map.
 
+## Quick start: minimal replication (~5 minutes)
+
+From the repo root, with your venv active:
+
+```bash
+# 1) Sanity-check the implementation (~30–60 s)
+pytest -q
+
+# 2) Short end-to-end experiment (~20–40 s): three conditions + figures
+python3 -m esl.experiment_two_type_separation \
+  --rounds 50 --m 5 --seed 42 --lr-scale 18 --obs-prob 1.0 \
+  --out runs/quickstart_smoke
+```
+
+**You should see** (under `runs/quickstart_smoke/`):
+
+| Path | What it is |
+|------|------------|
+| `experiment_manifest.json` | Run settings (`rounds`, `m`, `seed`, `lr_scale`, `obs_prob`) |
+| `figure_prototype_separation.png` | Three-way prototype dynamics (+ separation panel) |
+| `figure_matched_ce.png`, `figure_belief_entropy.png` | Matched CE and mean entropy |
+| `main/summary_metrics.json` | Final metrics for the **main** condition |
+| `main/`, `symmetric/`, `freeze_proto_baseline/` | Per-condition CSVs + `config.json` |
+
+Figures will look **noisy / incomplete** at 50 rounds; they are only for a **fast pipeline check**. For smoother curves, use **`--rounds 250`** (or 500+) as in the section below.
+
+### One-shot script
+
+```bash
+chmod +x scripts/reproduce_paper_figures.sh   # once
+./scripts/reproduce_paper_figures.sh
+```
+
+Optional **longer** bundle (main @ 250 rounds + mechanism plot @ `p_obs=0.5`, ~400 rounds):
+
+```bash
+ESL_FULL_REPRO=1 ./scripts/reproduce_paper_figures.sh
+```
+
 ## Main commands
 
 **Two-type separation experiment** (three conditions, CSV/JSON artifacts, figures):
@@ -84,6 +123,7 @@ Generated **`runs/`** is gitignored; reproduce figures locally with the commands
 | `esl/plot_esl_mechanism.py` | Two-panel mechanism figure |
 | `esl/hand_trace.py` | Traceable single-run diagnostics |
 | `tests/` | Pytest suite + plan |
+| `scripts/reproduce_paper_figures.sh` | One-shot quick (and optional full) local reproduction |
 
 ## Documentation
 
