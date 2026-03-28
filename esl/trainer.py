@@ -41,6 +41,41 @@ class BatchRecord:
     b_ij: np.ndarray
 
 
+def matched_true_type_separation_p_coop(
+    true_type_probs: np.ndarray,
+    logits: np.ndarray,
+) -> float:
+    """|P(cooperate) at prototype matched to true type 0 minus that for true type 1| at current θ (Hungarian)."""
+    perm, _ = match_prototypes_to_types(true_type_probs, logits)
+    p = stable_softmax(logits)
+    k0, k1 = int(perm[0]), int(perm[1])
+    return float(abs(p[k0, 0] - p[k1, 0]))
+
+
+def convergence_criteria_met(
+    summary_rows: list[dict[str, Any]],
+    t: int,
+    cfg: ESLConfig,
+    logits: np.ndarray,
+    true_type_probs: np.ndarray,
+) -> bool:
+    """
+    End-of-round check when stop_on_convergence is enabled and t+1 >= convergence_window_w.
+    Instantaneous: mean belief entropy and separation at round t.
+    Windowed: max prototype_update_norm and max belief_change_norm over rounds [t-W+1, t].
+    """
+    w = int(cfg.convergence_window_w)
+    window = summary_rows[t - w + 1 : t + 1]
+    if len(window) != w:
+        return False
+    h_ok = float(summary_rows[t]["belief_entropy_mean"]) < float(cfg.convergence_epsilon_h)
+    delta = matched_true_type_separation_p_coop(true_type_probs, logits)
+    delta_ok = delta > float(cfg.convergence_epsilon_delta)
+    theta_ok = max(float(r["prototype_update_norm"]) for r in window) < float(cfg.convergence_epsilon_theta)
+    b_ok = max(float(r["belief_change_norm"]) for r in window) < float(cfg.convergence_epsilon_b)
+    return bool(h_ok and delta_ok and theta_ok and b_ok)
+
+
 def prototype_sgd_step_from_batch(
     batch: list[BatchRecord],
     logits: np.ndarray,
@@ -210,6 +245,10 @@ def run_esl(
     Belief / batch / prototype ordering: see PRD §7 and **ALGORITHM.md**.
 
     If ``learning_frozen``: no Bayes updates and no batch appends (beliefs stay at init).
+
+    If ``stop_on_convergence``: after each round (once at least ``convergence_window_w`` rounds
+    exist), the trainer may break early when entropy, matched separation, and windowed stability
+    norms all satisfy configured thresholds; ``num_rounds`` is a hard cap. See **ALGORITHM.md**.
     """
     cfg.validate()
     rng = cfg.make_rng()
@@ -247,7 +286,10 @@ def run_esl(
     last_grad_norm = 0.0
     last_opp: dict[int, int | None] = {i: None for i in range(cfg.num_agents)}
 
-    for t in range(cfg.num_rounds):
+    stopped_on_convergence = False
+    convergence_round: int | None = None
+    t = 0
+    while t < cfg.num_rounds:
         belief_before = belief_tensor.copy()
         if cfg.force_ordered_pair is not None:
             i, j = cfg.force_ordered_pair
@@ -389,6 +431,21 @@ def run_esl(
                     br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
                 log.belief_rows.append(br)
 
+        if cfg.stop_on_convergence and (t + 1) >= cfg.convergence_window_w:
+            if convergence_criteria_met(
+                log.summary_rows,
+                t,
+                cfg,
+                logits,
+                true_type_probs,
+            ):
+                stopped_on_convergence = True
+                convergence_round = t
+                break
+        t += 1
+
+    last_env_round = len(log.summary_rows) - 1 if log.summary_rows else -1
+
     if batch and not cfg.learning_frozen:
         if cfg.freeze_prototype_parameters:
             batch.clear()
@@ -402,7 +459,7 @@ def run_esl(
                 log,
                 cfg=cfg,
                 update_index_m=m_step,
-                env_round_ended=cfg.num_rounds - 1,
+                env_round_ended=max(0, last_env_round),
                 theta_before=theta_before,
                 theta_after=logits,
                 prototype_update_norm=last_grad_norm,
@@ -420,6 +477,15 @@ def run_esl(
     else:
         cum_social = 0.0
         mean_per_round = 0.0
+    convergence_thresholds: dict[str, Any] | None = None
+    if cfg.stop_on_convergence:
+        convergence_thresholds = {
+            "window_w": cfg.convergence_window_w,
+            "epsilon_h": cfg.convergence_epsilon_h,
+            "epsilon_delta": cfg.convergence_epsilon_delta,
+            "epsilon_theta": cfg.convergence_epsilon_theta,
+            "epsilon_b": cfg.convergence_epsilon_b,
+        }
     summary_out: dict[str, Any] = {
         "final_matched_cross_entropy": final_ce,
         "permutation_true_to_learned": final_perm.tolist(),
@@ -432,6 +498,10 @@ def run_esl(
         "mean_payoff_per_agent_per_round": mean_per_round,
         "prototype_update_count": prototype_step_m,
         "num_rounds": cfg.num_rounds,
+        "num_rounds_executed": len(log.summary_rows),
+        "stopped_on_convergence": stopped_on_convergence,
+        "convergence_round": convergence_round,
+        "convergence_thresholds": convergence_thresholds,
         "learning_frozen": cfg.learning_frozen,
         "seed": cfg.seed,
         "mode": cfg.mode,

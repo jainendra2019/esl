@@ -49,6 +49,18 @@ class ESLConfig:
     symmetric_init: bool = False
 
     num_rounds: int = 200
+    # When True, stop early once convergence criteria hold for the current round (see trainer);
+    # num_rounds is a hard cap T_max. Default False preserves fixed-horizon behavior.
+    stop_on_convergence: bool = False
+    # Rolling window length W (rounds). Criteria need t+1 >= W before any check.
+    convergence_window_w: int = 50
+    convergence_epsilon_h: float = 0.1
+    # Hungarian-matched |P(C) for true type 0 − P(C) for true type 1| at current θ.
+    convergence_epsilon_delta: float = 0.8
+    # max over the last W rounds of logged prototype_update_norm must be < this.
+    convergence_epsilon_theta: float = 0.01
+    # max over the last W rounds of belief_change_norm must be < this.
+    convergence_epsilon_b: float = 0.01
     # Slow timescale: prototype SGD every M env steps (PRD §7; default M=5).
     prototype_update_every: int = 5
 
@@ -93,6 +105,20 @@ class ESLConfig:
             for t in self.force_agent_true_types:
                 if not (0 <= int(t) < self.num_prototypes):
                     raise ValueError("force_agent_true_types entries must be in [0, num_prototypes)")
+        if self.stop_on_convergence:
+            if self.num_prototypes < 2:
+                raise ValueError("stop_on_convergence requires num_prototypes >= 2")
+            if self.convergence_window_w < 1:
+                raise ValueError("convergence_window_w must be >= 1")
+            for name, x in (
+                ("convergence_epsilon_h", self.convergence_epsilon_h),
+                ("convergence_epsilon_theta", self.convergence_epsilon_theta),
+                ("convergence_epsilon_b", self.convergence_epsilon_b),
+            ):
+                if not (x > 0.0):
+                    raise ValueError(f"{name} must be > 0")
+            if not (0.0 <= self.convergence_epsilon_delta < 1.0):
+                raise ValueError("convergence_epsilon_delta must be in [0, 1)")
 
     def make_rng(self) -> np.random.Generator:
         return np.random.default_rng(self.seed)

@@ -128,7 +128,22 @@ Representative / downsampled belief series for experiments live in `belief_metri
 
 ### After the last round
 
-If `batch` non-empty, learning on, and prototypes not frozen: one **final flush** SGD step (same averaging rule), then clear.
+If `batch` non-empty, learning on, and prototypes not frozen: one **final flush** SGD step (same averaging rule), then clear. The recorded `env_round_ended` for that event is the **last completed environment round** (0-based index), which equals `T−1` for a full run and is smaller if the main loop stopped early (adaptive mode).
+
+---
+
+## Optional adaptive stopping (`stop_on_convergence`)
+
+When `ESLConfig.stop_on_convergence` is **true**, `num_rounds` is interpreted as a hard cap \(T_{\max}\). After each round \(t\) once \(t+1 \ge W\) (`convergence_window_w` = \(W\)), the trainer checks:
+
+1. **Entropy (instantaneous):** \(\bar H_t < \varepsilon_H\) using `belief_entropy_mean` for round \(t\).
+2. **Separation (instantaneous):** Let \(\Delta_t = |P(\mathrm{C})_{\pi(0)} - P(\mathrm{C})_{\pi(1)}|\) where \(\pi\) is the Hungarian match at **current** \(\theta\) between true-type rows \(0,1\) and prototypes (same row assignment as matched CE). Require \(\Delta_t > \varepsilon_\Delta\).
+3. **Prototype stability (window):** \(\max_{s \in \{t-W+1,\ldots,t\}} \texttt{prototype\_update\_norm}_s < \varepsilon_\theta\). Non–prototype-update rounds log norm \(0\); this uses the same per-round scalar already written to `metrics_trajectory.csv`, not \(\|\theta_t-\theta_{t-1}\|\) on every round.
+4. **Belief stability (window):** \(\max_{s \in \{t-W+1,\ldots,t\}} \texttt{belief\_change\_norm}_s < \varepsilon_B\).
+
+All \(\varepsilon\)’s and \(W\) are **user-set before the run** (config / CLI). If the conditions never hold, the run stops at \(T_{\max}\). Summary JSON includes `num_rounds_executed`, `stopped_on_convergence`, `convergence_round` (0-based \(t\) when stopped early, else `null`), and `convergence_thresholds`.
+
+Default is **fixed horizon**: `stop_on_convergence` false, behavior unchanged.
 
 ---
 

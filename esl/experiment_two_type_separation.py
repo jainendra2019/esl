@@ -418,7 +418,7 @@ def plot_belief_entropy(all_runs: dict[str, dict[str, Any]], out_path: Path) -> 
 
 
 def save_manifest(args: argparse.Namespace, out_dir: Path) -> None:
-    manifest = {
+    manifest: dict[str, Any] = {
         "experiment": "two_type_separation",
         "rounds": args.rounds,
         "m": args.m,
@@ -426,7 +426,14 @@ def save_manifest(args: argparse.Namespace, out_dir: Path) -> None:
         "lr_scale": args.lr_scale,
         "obs_prob": args.obs_prob,
         "conditions": list(CONDITION_ORDER),
+        "until_converged": bool(getattr(args, "until_converged", False)),
     }
+    if manifest["until_converged"]:
+        manifest["conv_window"] = args.conv_window
+        manifest["conv_eps_h"] = args.conv_eps_h
+        manifest["conv_eps_delta"] = args.conv_eps_delta
+        manifest["conv_eps_theta"] = args.conv_eps_theta
+        manifest["conv_eps_b"] = args.conv_eps_b
     (Path(out_dir) / "experiment_manifest.json").write_text(
         json.dumps(manifest, indent=2),
         encoding="utf-8",
@@ -447,6 +454,16 @@ def main() -> None:
     p.add_argument("--no-plots", action="store_true", help="write metrics only")
     p.add_argument("--csv-every", type=int, default=1, dest="csv_every")
     p.add_argument("--game", type=str, default="ipd")
+    p.add_argument(
+        "--until-converged",
+        action="store_true",
+        help="stop early when convergence criteria hold; --rounds is T_max (see ALGORITHM.md)",
+    )
+    p.add_argument("--conv-window", type=int, default=50, dest="conv_window")
+    p.add_argument("--conv-eps-h", type=float, default=0.1, dest="conv_eps_h")
+    p.add_argument("--conv-eps-delta", type=float, default=0.8, dest="conv_eps_delta")
+    p.add_argument("--conv-eps-theta", type=float, default=0.01, dest="conv_eps_theta")
+    p.add_argument("--conv-eps-b", type=float, default=0.01, dest="conv_eps_b")
     args = p.parse_args()
 
     out_root = Path(args.out).resolve()
@@ -467,6 +484,16 @@ def main() -> None:
             delta_simplex=args.delta_simplex,
             game=args.game,
         )
+        if args.until_converged:
+            cfg = replace(
+                cfg,
+                stop_on_convergence=True,
+                convergence_window_w=args.conv_window,
+                convergence_epsilon_h=args.conv_eps_h,
+                convergence_epsilon_delta=args.conv_eps_delta,
+                convergence_epsilon_theta=args.conv_eps_theta,
+                convergence_epsilon_b=args.conv_eps_b,
+            )
         sub = out_root / cond
         run = run_condition(cfg, cond, sub)
         save_condition_outputs(run, sub, csv_every=args.csv_every, p_obs=args.obs_prob)
