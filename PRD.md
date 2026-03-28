@@ -29,7 +29,7 @@ In scope
 	•	categorical likelihood with softmax logits
 	•	pairwise beliefs over prototypes
 	•	sparse or full observability via W_{ij,t}
-	•	belief update via Bayes + floor-and-renormalize projection
+	•	belief update via Bayes + Euclidean projection onto $\Delta_K^\delta$
 	•	prototype update via stochastic gradient ascent
 	•	evaluation in both recovery and adaptation modes
 
@@ -159,7 +159,7 @@ b_{i\to j,0}[k]=1/K
 Use:
 \Delta_K^\delta=\{b\in\mathbb R^K:\sum_k b[k]=1,\; b[k]\ge \delta\}
 
-**Implementation note:** the code enforces this set **up to a numerical floor tolerance** $\varepsilon_{\mathrm{floor}}$ (default `1e-8`): after projection, require $b[k]\ge \delta-\varepsilon_{\mathrm{floor}}$ and $\sum_k b[k]=1$ within floating-point tolerance. The operator is an **iterated clip-and-renormalize** surrogate, not necessarily exact Euclidean projection onto $\Delta_K^\delta$.
+**Implementation:** after each Bayes step, beliefs are mapped to $\Delta_K^\delta$ by **Euclidean projection** $\Pi_{\Delta_K^\delta}(x)=\arg\min_{b\in\Delta_K^\delta}\|b-x\|_2^2$ (sorting-based algorithm in `esl/utils/simplex.py`). Floating-point output satisfies $b[k]\ge \delta$ and $\sum_k b[k]=1$ up to machine epsilon.
 
 ⸻
 
@@ -176,18 +176,17 @@ b_{i\to j,t}[k]L_k(s_{ij,t}\mid\theta_{k,t})
 
 using **unclamped** likelihoods $L_k$ from the softmax model.
 
-Then apply the **simplex floor operator** (MVP):
-	1.	repeat: $b \leftarrow \max(b,\delta)$ elementwise, then $b \leftarrow b / \sum_k b[k]$
-	2.	stop when $\min_k b[k]\ge \delta-\varepsilon_{\mathrm{floor}}$ and $\sum_k b[k]=1$ within tolerance (or cap iterations and error)
-
-A **single** clip+renormalize pass can leave some mass **below** $\delta$ after normalization; iteration fixes that while preserving nonnegativity and normalization.
+Then apply **Euclidean projection** onto $\Delta_K^\delta$:
+\[
+b_{i\to j,t+1}=\Pi_{\Delta_K^\delta}(\tilde b).
+\]
 
 If W_{ij,t}=0, keep:
 b_{i\to j,t+1}=b_{i\to j,t}
 
 Implementation guardrails:
-	•	add epsilon in denominator if needed
-	•	assert output sums to 1 within tolerance and satisfies the floor within $\varepsilon_{\mathrm{floor}}$
+	•	add small $\varepsilon$ in the Bayes denominator only for numerical stability (`bayes_denominator_eps` in code; not part of the feasible set definition)
+	•	require $K\delta\le 1$; when $K\delta=1$ the feasible set is the single point $b[k]=\delta$
 
 ⸻
 
@@ -406,7 +405,7 @@ Optional helper for generating observable signals from actions.
 
 beliefs.py
 
-Belief init, Bayes update, floor projection.
+Belief init, Bayes update, Euclidean projection onto $\Delta_K^\delta$.
 
 prototypes.py
 
@@ -481,7 +480,7 @@ This is non-optional.
 Implement at least:
 	1.	softmax(theta).sum() == 1
 	2.	Bayes update preserves simplex
-	3.	iterative simplex floor enforces $b[k]\ge \delta-\varepsilon_{\mathrm{floor}}$ (and normalization) within tolerance
+	3.	Euclidean projection onto $\Delta_K^\delta$ enforces $b[k]\ge \delta$ and normalization (within float tolerance)
 	4.	gradient matches finite differences
 	5.	symmetric init run does not separate prototypes
 	6.	asymmetric init run does separate prototypes
@@ -543,7 +542,7 @@ Do enforce
 
 16. Cursor implementation brief
 
-Build a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but implement recovery mode first. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then **iterated** clip-to-$\delta$ and renormalize until the simplex floor constraints hold within tolerance (§4.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics.
+Build a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but implement recovery mode first. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then **Euclidean projection** onto $\Delta_K^\delta$ (§4.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics.
 
 ⸻
 
@@ -551,7 +550,7 @@ Build a minimal Python implementation of Epistemic Social Learning (ESL) for rep
 
 These statements are **normative for the reference implementation** and avoid ambiguity for tests and reviewers.
 
-1. **Simplex floor:** The floor operator is a **practical surrogate** for membership in $\Delta_K^\delta$. It need not coincide with exact Euclidean projection, but it **must** preserve normalization, nonnegativity, and **$b[k]\ge \delta-\varepsilon_{\mathrm{floor}}$** within the chosen tolerance (default $\varepsilon_{\mathrm{floor}}=10^{-8}$), via **iterated** clip and renormalize (§4.8).
+1. **Simplex constraint:** After Bayes, beliefs are mapped by **exact Euclidean projection** $\Pi_{\Delta_K^\delta}$ onto $\{b:\sum_k b_k=1,\,b_k\ge\delta\}$ (§4.8). Implementation: `esl/utils/simplex.py` + `esl/beliefs.py`.
 
 2. **Mode B:** MVP adaptation uses **all** logit best-response agents unless extended. Mixed fixed/BR populations are an **optional** implementation note, not a core requirement.
 

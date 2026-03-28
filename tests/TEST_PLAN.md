@@ -21,7 +21,7 @@
 | V2 | `test_v2_log_likelihood_finite_both_actions` | Clamped log L finite for extreme logits, both actions |
 | V3 | `test_v3_gradient_matches_finite_differences_specific` | Analytic grad vs FD at θ=[0.7,-0.2], s=0 |
 | V4 | `test_v4_bayes_preserves_simplex` | Posterior on simplex, nonnegative |
-| V5 | `test_v5_floor_projection_enforces_delta` | Iterated floor: min ≥ δ − ε_floor, sum 1 |
+| V5 | `test_v5_delta_simplex_projection_enforces_delta` | Euclidean projection onto Δ_K^δ: min ≥ δ, sum 1 |
 | V6 | `test_v6_no_belief_update_when_unobserved` | W=0 ⇒ belief unchanged |
 | V7 | `test_v7_batch_stores_b_ij_t_before_bayes_not_b_ij_t_plus_1` | Batch = $b_{i\to j,t}$ (pre-Bayes), not $b_{t+1}$; gradient uses snapshot |
 | V8 | `test_v8_batch_averaging_duplicate_observations` | Duplicate batch ⇒ same θ update as single (mean) |

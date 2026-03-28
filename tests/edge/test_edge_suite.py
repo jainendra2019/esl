@@ -76,5 +76,5 @@ def test_e4_degenerate_extreme_logits():
     assert np.all(np.isfinite(lk0))
     assert float(lk0.sum()) > 0
     prior = np.ones(2) / 2
-    post = update_belief_pair(prior, lk0, delta=1e-4, eps=1e-12, floor_tolerance=1e-8)
+    post = update_belief_pair(prior, lk0, delta=1e-4, eps=1e-12)
     assert np.isfinite(post).all()

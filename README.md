@@ -6,7 +6,7 @@ Code for **multi-agent belief dynamics** and **slow prototype (latent-type) lear
 
 ## Features
 
-- **Recovery mode:** fixed hidden policies (e.g. Always Cooperate / Always Defect), random ordered-pair observations, Bayes belief updates on the simplex with floor projection.
+- **Recovery mode:** fixed hidden policies (e.g. Always Cooperate / Always Defect), random ordered-pair observations, Bayes updates followed by Euclidean projection onto the δ-floored simplex Δ_K^δ.
 - **Metrics:** Hungarian-matched cross-entropy vs. true policies, belief entropy, argmax accuracy.
 - **Paper-style experiments:** two-type separation suite (`main` / `symmetric` / `freeze prototype`) plus plotting helpers for observability and mechanism figures.
 - **Tests:** verification (math / algorithm), validation (end-to-end), edge cases; heavy checks marked **`slow`**.
@@ -97,16 +97,18 @@ python3 -m esl.experiment_two_type_separation \
 python3 -m esl.hand_trace --help
 ```
 
-**Post-hoc figures** (after a run exists):
+**Post-hoc figures** (after a run exists; beliefs use Euclidean projection onto $\Delta_K^\delta$ throughout):
 
 ```bash
-# Separation vs. observability (point at each run’s …/main folder)
+# Separation vs. observability (one …/main path per p_obs curve)
 python3 -m esl.plot_observability_separation \
-  --runs runs/run_a/main runs/run_b/main runs/run_c/main \
-  --out runs/figure_separation_vs_obs.png
+  --runs runs/two_type_sep_obs10_long/main runs/two_type_sep_obs05/main runs/two_type_sep_obs02/main \
+  --out runs/paper_figures/figure_separation_vs_obs.png
 
 # Mechanism: belief entropy + prototype separation (main folder only)
-python3 -m esl.plot_esl_mechanism --main-dir runs/my_run/main
+python3 -m esl.plot_esl_mechanism \
+  --main-dir runs/two_type_sep_mechanism_obs05/main \
+  --out runs/paper_figures/figure_mechanism_obs05.png
 ```
 
 Generated **`runs/`** is gitignored; reproduce figures locally with the commands above.

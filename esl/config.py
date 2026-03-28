@@ -38,9 +38,8 @@ class ESLConfig:
     num_actions: int = 2
 
     delta_simplex: float = 1e-4
-    belief_floor_eps: float = 1e-12
-    belief_floor_tolerance: float = 1e-8
-    belief_floor_max_iter: int = 10_000
+    # Small additive term in the Bayes posterior denominator for numerical stability only.
+    bayes_denominator_eps: float = 1e-12
     # §4.6: clamp softmax mass before log(p) in log-likelihood telemetry
     log_prob_min: float = 1e-8
 

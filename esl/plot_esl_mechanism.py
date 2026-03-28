@@ -8,8 +8,8 @@ Reads:
 Optional: vertical dashed line at first round with avg belief entropy < 0.5.
 
 Usage:
-  python3 -m esl.plot_esl_mechanism --main-dir runs/two_type_sep_pobs05_T3000/main
-  python3 -m esl.plot_esl_mechanism --main-dir .../main --out custom.png --no-entropy-vline
+  python3 -m esl.plot_esl_mechanism --main-dir runs/two_type_sep_mechanism_obs05/main
+  python3 -m esl.plot_esl_mechanism --main-dir .../main --out runs/paper_figures/figure_mechanism_obs05.png
 """
 
 from __future__ import annotations

@@ -82,7 +82,8 @@ b_snap ← copy of B[i,j]
 If w > 0:
     For each prototype k:
         L_k ← softmax(θ_k)[s]          // unclipped; used only for Bayes
-    B[i,j] ← BayesThenSimplexFloor(B[i,j], L, δ, ε_floor, …)
+    tilde_b ← Bayes(B[i,j], L)         // normalized posterior; ε in denominator only if configured
+    B[i,j] ← Π_{Δ_K^δ}(tilde_b)        // Euclidean projection onto {b : sum b = 1, b_k ≥ δ}
 
 Append batch record (i, j, s, w, b_snap).
 ```
@@ -158,7 +159,7 @@ Hungarian matching pairs **rows** of `true_type_probs` (shape \(K \times |A|\)) 
 | Piece | Location |
 |-------|----------|
 | Main loop | `esl/trainer.py` → `run_esl` |
-| Bayes + floor | `esl/beliefs.py` |
+| Bayes + Π_{Δ_K^δ} | `esl/beliefs.py`, `esl/utils/simplex.py` |
 | Likelihoods / gradients | `esl/prototypes.py` |
 | True type soft rows | `esl/games.py` → `true_type_distributions` |
 | Config | `esl/config.py` → `ESLConfig` |

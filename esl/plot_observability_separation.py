@@ -7,9 +7,8 @@ main/prototype_trajectory.csv (sparse update rows + init row).
 
 Usage:
   python3 -m esl.plot_observability_separation \\
-    --out runs/figure_separation_vs_obs.png \\
-    --runs runs/two_type_sep_main runs/two_type_sep_pobs05_T2000 runs/two_type_sep_obs02_long \\
-    --labels '$p_{\\mathrm{obs}}=1.0$' '$p_{\\mathrm{obs}}=0.5$' '$p_{\\mathrm{obs}}=0.2$'
+    --out runs/paper_figures/figure_separation_vs_obs.png \\
+    --runs runs/two_type_sep_obs10_long/main runs/two_type_sep_obs05/main runs/two_type_sep_obs02/main
 """
 
 from __future__ import annotations

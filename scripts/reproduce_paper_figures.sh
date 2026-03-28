@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Reproduce core outputs locally (runs/ is gitignored).
+# Belief dynamics: Bayes then Euclidean projection onto Δ_K^δ (see PRD §4.8, esl/utils/simplex.py).
 #
 # Default (~1–3 min): fast tests + short experiment + figures.
 # Full paper-style bundle (~3–8 min): set ESL_FULL_REPRO=1

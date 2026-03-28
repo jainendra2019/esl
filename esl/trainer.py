@@ -127,9 +127,7 @@ def observe_signal_update_belief(
             belief_tensor[i, j],
             lk,
             cfg.delta_simplex,
-            cfg.belief_floor_eps,
-            floor_tolerance=cfg.belief_floor_tolerance,
-            max_floor_iter=cfg.belief_floor_max_iter,
+            cfg.bayes_denominator_eps,
         )
     return BatchRecord(i=i, j=j, signal=signal, w=w, b_ij=b_ij_t)
 

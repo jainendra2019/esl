@@ -75,15 +75,14 @@ def test_v4_bayes_preserves_simplex():
 
 
 @pytest.mark.verification
-def test_v5_floor_projection_enforces_delta():
-    from esl.beliefs import project_simplex_floor_iterate
+def test_v5_delta_simplex_projection_enforces_delta():
+    from esl.utils.simplex import project_to_simplex_with_floor
 
     b = np.array([1e-12, 1.0 - 1e-12], dtype=np.float64)
     delta = 0.05
-    tol = 1e-8
-    out = project_simplex_floor_iterate(b, delta, floor_tolerance=tol)
+    out = project_to_simplex_with_floor(b, delta)
     assert np.isclose(out.sum(), 1.0, rtol=1e-9, atol=1e-9)
-    assert np.all(out >= delta - tol - 1e-12)
+    assert np.all(out >= delta - 1e-12)
 
 
 @pytest.mark.verification
@@ -137,7 +136,7 @@ def test_v9_belief_likelihood_cooperate_shifts_posterior():
     prior = np.ones(2) / 2
     logits = np.array([[4.0, 0.0], [0.0, 4.0]], dtype=np.float64)
     lk = likelihoods(logits, action=0)
-    post = update_belief_pair(prior, lk, cfg.delta_simplex, cfg.belief_floor_eps, floor_tolerance=cfg.belief_floor_tolerance)
+    post = update_belief_pair(prior, lk, cfg.delta_simplex, cfg.bayes_denominator_eps)
     assert post[0] > prior[0]
     assert post[1] < prior[1]
 
