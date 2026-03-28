@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "esl"
+version = "0.1.0"
+dependencies = ["numpy>=1.20", "scipy>=1.7", "matplotlib>=3.5"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["esl*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = [
+    "verification: unit and integration algorithm correctness",
+    "validation: end-to-end ESL behavior vs PRD",
+    "edge: robustness and degenerate inputs",
+    "slow: long ESL runs (excluded from default collection unless --runslow)",
+]
