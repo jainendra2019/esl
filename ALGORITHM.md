@@ -8,11 +8,17 @@ This document matches the behavior of `esl.trainer.run_esl` and related modules.
 |--------|---------|
 | \(N\) | `num_agents` |
 | \(K\) | `num_prototypes` — **learned** prototype count (logits \(\theta \in \mathbb{R}^{K \times |A|}\)) |
-| \(\tau_a \in \{0,\ldots,K-1\}\) | Agent \(a\)’s **assigned type index** (stored in `true_types`; used for metrics and, modulo the behavioral registry, for hidden policies) |
-| Behavioral policies | `games.HIDDEN_POLICY_BUILDERS` defines built-in behaviors (Always C / Always D). If \(K>2\), **row \(k\)** of the true action distribution matrix still cycles those behaviors: `true_type_distributions(K)` has shape \((K,|A|)\). So **learned \(K\)** may **exceed** the number of *distinct* behavioral templates; indices map via `k % n_base`. |
+| \(\tau_a \in \{0,\ldots,K-1\}\) | Agent \(a\)’s **assigned type index** in code (`true_types`); used for metrics and for choosing a **fixed** hidden policy in recovery mode. |
+| True types vs learned prototypes (paper) | **Conceptually separate:** the paper treats true latent types and learned prototypes as distinct objects. This repo aligns them only where needed for metrics (e.g. Hungarian match over \(K\) rows). |
 | \(M\) | `prototype_update_every` — slow timescale |
 | \(w \in \{0,1\}\) | Observation mask (`sample_observation_mask`; sparse \(w \sim \mathrm{Bernoulli}(p_{\mathrm{obs}})\)) |
 | \(b^{\mathrm{snap}}_{i\to j}\) | Belief **before** Bayes on the current signal (what the batch stores). |
+
+### Implementation note: \(K\) larger than base behavioral templates
+
+In the **current recovery-mode implementation**, v1 only registers two **base** hidden policies (Always Cooperate / Always Defect). When **\(K\)** (or an agent type index) exceeds the number of those templates, **fixed** hidden policies are assigned by **cycling** through the available templates (`type_index % n_behavioral`; the same cycling defines rows of `true_type_distributions(K)` for Hungarian costs).
+
+**This is an implementation convenience** for overparameterized and edge tests. **It is not a theoretical claim:** a fuller model could equip each true type with its own policy without cycling. Reviewers should not read the modulo rule as part of the ESL *definition*—only as what this codebase does when \(K>2\) with the built-in policy registry.
 
 ## Initialization
 
@@ -23,7 +29,8 @@ batch ← empty list
 m ← 0   // prototype SGD step index
 
 Assign τ_a for each agent a (config override or cyclic 0..K-1)
-Build hidden policies π_a from τ_a (policy class = f(τ_a mod n_behavioral))
+Build hidden policies π_a from τ_a
+    // v1: policy template = f(τ_a mod n_behavioral) — see "Implementation note" above when K>2
 
 If mode == adaptation:
     mark ESL-controlled agents (v1: all) for act_agent

@@ -77,11 +77,12 @@ def true_type_distributions(num_types: int) -> np.ndarray:
     """
     Shape (K, 2): row k is p(a | nominal type k) used for Hungarian CE / metrics.
 
-    **Learned prototypes** count is K = ``num_types`` here. **Behavioral** templates
-    in v1 are only Always C / Always D; for K > 2 rows **cycle** those policies
-    (k mod n_behavioral), matching over-parameterized and edge tests. Agent-level
-    ``true_types`` in the trainer still live in 0..K-1; hidden policies use
-    ``type_index % n_behavioral`` when building ``HiddenPolicy`` instances.
+    When K exceeds the number of registered base policies (v1: AC and AD only),
+    rows **cycle** through those templates (``k % n_behavioral``). That is an
+    **implementation convenience** for overparameterized / edge tests—not a
+    theoretical restriction; see **ALGORITHM.md** (“Implementation note: K larger
+    than base behavioral templates”). Trainer hidden policies use the same
+    modulo when building ``HiddenPolicy`` from a type index.
     """
     if num_types < 1:
         raise ValueError("num_types must be >= 1")
