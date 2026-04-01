@@ -40,31 +40,61 @@ pytest -q --runslow
 
 See **`tests/TEST_PLAN.md`** for the verification vs. validation map.
 
-## Quick start: minimal replication (~5 minutes)
+## Quick start (~5 minutes the first time)
+
+Rough budget from a fresh clone: **venv + pip ~1–3 min**, **`pytest -q` ~30–60 s**, **smoke experiment ~20–50 s** (three conditions × 50 rounds + matplotlib). After dependencies are installed, the test + smoke loop is usually **~1–2 minutes**.
 
 From the repo root, with your venv active:
 
 ```bash
-# 1) Sanity-check the implementation (~30–60 s)
+# 1) Fast test suite (excludes @pytest.mark.slow)
 pytest -q
 
-# 2) Short end-to-end experiment (~20–40 s): three conditions + figures
+# 2) Smoke run: three conditions (main / symmetric / freeze prototype) + PNGs
 python3 -m esl.experiment_two_type_separation \
-  --rounds 50 --m 5 --seed 42 --lr-scale 18 --obs-prob 1.0 \
-  --out runs/quickstart_smoke
+  --out runs/quickstart_smoke \
+  --rounds 50 \
+  --m 5 \
+  --seed 42 \
+  --lr-scale 18 \
+  --obs-prob 1.0
 ```
 
-**You should see** (under `runs/quickstart_smoke/`):
+**CLI essentials** (`esl.experiment_two_type_separation`; **`--out` is required**):
+
+| Flag | Role | Quick-start value |
+|------|------|-------------------|
+| `--out` | Output root (created if missing) | `runs/quickstart_smoke` |
+| `--rounds` | Environment rounds per condition (`num_rounds`) | `50` smoke; `250`+ for smoother curves |
+| `--m` | `prototype_update_every` → **\(Q\)** in config (prototype step every **\(Q\) interaction events**). This driver uses the default **one ordered pair per round**, so **\(Q\)** equals “every *m* rounds” here. | `5` |
+| `--seed` | RNG seed | `42` |
+| `--lr-scale` | `prototype_lr_scale` for **main** and **freeze** conditions (symmetric baseline uses `1.0`) | `18` |
+| `--obs-prob` | Observation probability \(p_{\mathrm{obs}}\) (`1.0` = full observability) | `1.0` |
+| `--n-agents` | Agent count (default **6** = three “always C” + three “always D” when \(N=6\), \(K=2\)) | default `6` |
+| `--n-prototypes` | \(K\) | default `2` |
+| `--delta` | Simplex floor \(\delta\) (`delta_simplex`) | default `1e-4` |
+| `--no-plots` | Skip figure PNGs; metrics/CSVs only | — |
+| `--until-converged` | Stop early when convergence tests pass; `--rounds` is **T_max** | optional; tune with `--conv-window`, `--conv-eps-*` |
+
+For **multi-pair rounds** (\(L_t>1\)) or flagship-style recovery, configure `ESLConfig` in Python or another driver; this experiment script keeps the default **one random pair per round** so the table above stays accurate.
+
+**Optional faster demo** (single recovery or adaptation run, default 200 rounds, writes under `runs/...` if you pass `--out`):
+
+```bash
+python3 -m esl --rounds 80 --out runs/esl_demo
+```
+
+**You should see** (under `runs/quickstart_smoke/` after step 2):
 
 | Path | What it is |
 |------|------------|
-| `experiment_manifest.json` | Run settings (`rounds`, `m`, `seed`, `lr_scale`, `obs_prob`) |
+| `experiment_manifest.json` | Run settings (`rounds`, `m`, `seed`, `lr_scale`, `obs_prob`, …) |
 | `figure_prototype_separation.png` | Three-way prototype dynamics (+ separation panel) |
 | `figure_matched_ce.png`, `figure_belief_entropy.png` | Matched CE and mean entropy |
 | `main/summary_metrics.json` | Final metrics for the **main** condition |
 | `main/`, `symmetric/`, `freeze_proto_baseline/` | Per-condition CSVs + `config.json` |
 
-Figures will look **noisy / incomplete** at 50 rounds; they are only for a **fast pipeline check**. For smoother curves, use **`--rounds 250`** (or 500+) as in the section below.
+Figures will look **noisy / incomplete** at 50 rounds; they are only for a **fast pipeline check**. For smoother curves, use **`--rounds 250`** (or 500+) as in **Main commands** below.
 
 ### One-shot script
 

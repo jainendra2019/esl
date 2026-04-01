@@ -1,7 +1,8 @@
 """
 Two-type latent recovery experiment: main vs symmetric vs freeze-prototype baseline.
 
-Recovery mode only; one random ordered pair per round; prototypes every M rounds.
+Recovery mode only; default **one** random ordered pair per round (`interaction_pairs_min`/`max` left at 1).
+`--m` sets `prototype_update_every` (**Q** interaction events per prototype step; with one pair/round, equals every *m* rounds).
 
 Usage:
   python -m esl.experiment_two_type_separation \\
@@ -448,7 +449,12 @@ def save_manifest(args: argparse.Namespace, out_dir: Path) -> None:
 def main() -> None:
     p = argparse.ArgumentParser(description="Two-type prototype separation experiment (3 conditions)")
     p.add_argument("--rounds", type=int, default=250)
-    p.add_argument("--m", type=int, default=5, help="prototype update every M rounds")
+    p.add_argument(
+        "--m",
+        type=int,
+        default=5,
+        help="prototype_update_every (Q interaction events; with default 1 pair/round, one step every m rounds)",
+    )
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--lr-scale", type=float, default=DEFAULT_LR_SCALE, dest="lr_scale")
     p.add_argument("--out", type=Path, required=True, help="output directory root")
