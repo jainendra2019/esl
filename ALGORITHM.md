@@ -1,8 +1,8 @@
 # ESL — algorithm reference (single file)
 
-This document is the **only** algorithm narrative for the repository: **what the code does today**, the **theory-aligned target**, and **Cormen-style pseudocode**. Product requirements, experiments, and MVP scope live in **[PRD.md](PRD.md)**.
+This document is the **only** algorithm narrative for the repository: **what the code does today**, the **theory-aligned target**, and **Cormen-style pseudocode**. Product requirements, experiments, and MVP scope live in **[PRD.md](PRD.md)**; the v2 protocol addendum is **PRD §19** and should stay consistent with the two narrative sections below.
 
-**Coding reviews:** start with [Current implementation](#current-implementation). **Paper alignment:** [Theory-aligned target](#theory-aligned-target) + PRD §19.
+**Coding reviews:** start with [Current implementation](#current-implementation). **Paper alignment:** [Theory-aligned target](#theory-aligned-target) + PRD §19. **Executable-style spec:** [Pseudocode (Cormen-style)](#pseudocode-cormen-style).
 
 | Code entry | Location |
 |------------|----------|

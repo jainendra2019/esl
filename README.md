@@ -7,6 +7,7 @@ Code for **multi-agent belief dynamics** and **slow prototype (latent-type) lear
 ## Features
 
 - **Recovery mode:** fixed hidden policies (e.g. Always Cooperate / Always Defect), random ordered-pair observations, Bayes updates followed by Euclidean projection onto the δ-floored simplex Δ_K^δ.
+- **Interaction protocol:** each environment round samples \(L_t\) distinct ordered pairs without replacement (`interaction_pairs_min` / `max`); prototype SGD runs every **\(Q\)** interaction events (`prototype_update_every` after `validate()`), not once per round when \(L_t>1\).
 - **Metrics:** Hungarian-matched cross-entropy vs. true policies, belief entropy, argmax accuracy.
 - **Paper-style experiments:** two-type separation suite (`main` / `symmetric` / `freeze prototype`) plus plotting helpers for observability and mechanism figures.
 - **Tests:** verification (math / algorithm), validation (end-to-end), edge cases; heavy checks marked **`slow`**.
@@ -119,7 +120,9 @@ python3 -m esl.plot_esl_mechanism \
 |------|------|
 | `esl/config.py` | `ESLConfig`, seeds, schedules |
 | `esl/trainer.py` | Main loop, batching, logging |
+| `esl/interaction_protocol.py` | \(L_t\) and ordered-pair sampling |
 | `esl/beliefs.py`, `esl/prototypes.py`, `esl/metrics.py` | Core math |
+| `esl/synthetic_population.py` | Optional simulator ground truth (evaluation only; not used by `run_esl`) |
 | `esl/experiment_two_type_separation.py` | Three-condition experiment driver |
 | `esl/plot_observability_separation.py` | Overlay separation curves across `p_obs` |
 | `esl/plot_esl_mechanism.py` | Two-panel mechanism figure |
@@ -129,9 +132,9 @@ python3 -m esl.plot_esl_mechanism \
 
 ## Documentation
 
-- **`PRD.md`** — product / algorithm requirements used to align implementation and tests.
-- **`ALGORITHM.md`** — single reference: current implementation, theory-aligned target, and Cormen-style pseudocode.
-- **`esl/synthetic_population.py`** — optional simulator ground truth (not used by `run_esl`).
+- **`PRD.md`** — product / algorithm requirements; **§19** is the v2 addendum (variable \(L_t\), \(Q\), \(\hat\pi\), synthetic eval, MCE naming, SA wording).
+- **`ALGORITHM.md`** — **only** algorithm doc: *Current implementation* (narrative), *Theory-aligned target*, and *Pseudocode (Cormen-style)* in one file (no separate pseudocode markdown).
+- **`tests/TEST_PLAN.md`** — verification vs. validation map; keep in sync with `ALGORITHM.md` when the trainer contract changes.
 
 ## License
 
