@@ -1,0 +1,7 @@
+{
+  "preset": "recovery_flagship",
+  "seed": 42,
+  "smoke": true,
+  "target_interaction_budget": null,
+  "variant": "long"
+}

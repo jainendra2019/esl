@@ -587,7 +587,7 @@ These statements are **normative for the reference implementation** and avoid am
 
 ## 19. Addendum — Target protocol, predictive policies, synthetic evaluation, SA language (v2)
 
-This addendum aligns the **product spec** with the paper-style target. The **reference code** may implement a strict subset. **Single algorithm reference:** **`ALGORITHM.md`** — (*Current implementation* = what `run_esl` does), (*Theory-aligned target* = paper-style math), (*Pseudocode (Cormen-style)* = consolidated procedures and flagship block). There is **no** separate pseudocode file.
+This addendum aligns the **product spec** with the paper-style target. The **reference code** may implement a strict subset. **Single algorithm reference:** **`ALGORITHM.md`** — (*Current implementation* = what `run_esl` does), (*Theory-aligned target* = paper-style math), (*Pseudocode (Cormen-style)* = consolidated procedures and flagship block). There is **no** separate pseudocode file. **NeurIPS-style recovery presets, sweep aggregation, and plotting** live under **`esl/experiments/`** and **`esl/plot_neurips.py`** (see **README**); they reuse `run_esl` and the reporting fields described in **ALGORITHM.md** (*Run outputs*).
 
 ### 19.1 Target interaction protocol
 

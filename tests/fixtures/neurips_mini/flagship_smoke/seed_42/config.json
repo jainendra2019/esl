@@ -1,0 +1,7 @@
+{
+  "seed": 42,
+  "p_obs": 1.0,
+  "prototype_lr_scale": 22.0,
+  "init_noise": 0.05,
+  "prototype_update_every": 15
+}

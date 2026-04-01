@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "p_obs": 1.0,
+  "prototype_lr_scale": 22.0,
+  "init_noise": 0.05,
+  "prototype_update_every_q": 15,
+  "num_interaction_events_executed": 50,
+  "num_rounds_executed": 5,
+  "final_matched_cross_entropy": 0.1,
+  "final_mce": 0.05,
+  "final_belief_entropy": 0.2,
+  "final_belief_argmax_accuracy": 0.9,
+  "final_prototype_gap": 0.7,
+  "prototype_update_count": 3
+}

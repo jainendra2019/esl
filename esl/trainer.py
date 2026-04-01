@@ -21,6 +21,7 @@ from esl.metrics import (
     belief_argmax_accuracy,
     belief_entropy,
     match_prototypes_to_types,
+    mce_value,
     pairwise_assignment_cost,
 )
 from esl.prototypes import (
@@ -47,6 +48,9 @@ def matched_true_type_separation_p_coop(
     logits: np.ndarray,
 ) -> float:
     """|P(cooperate) at prototype matched to true type 0 minus that for true type 1| at current θ (Hungarian)."""
+    k = int(true_type_probs.shape[0])
+    if k < 2:
+        return 0.0
     perm, _ = match_prototypes_to_types(true_type_probs, logits)
     p = stable_softmax(logits)
     k0, k1 = int(perm[0]), int(perm[1])
@@ -201,6 +205,7 @@ def _append_prototype_update_event(
     theta_after: np.ndarray,
     prototype_update_norm: float,
     final_flush: bool,
+    interaction_n_at_update: int,
     batch: list[BatchRecord] | None = None,
 ) -> None:
     p_before = stable_softmax(np.asarray(theta_before, dtype=np.float64))
@@ -210,6 +215,7 @@ def _append_prototype_update_event(
         "prototype_update_every_interactions": cfg.prototype_Q(),
         "prototype_update_index_m": int(update_index_m),
         "env_round_ended": int(env_round_ended),
+        "interaction_n_at_update": int(interaction_n_at_update),
         "final_flush": bool(final_flush),
         "prototype_update_norm": float(prototype_update_norm),
         "theta_before": theta_before.tolist(),
@@ -448,6 +454,7 @@ def run_esl(
                             theta_after=logits,
                             prototype_update_norm=proto_norm_this_round,
                             final_flush=False,
+                            interaction_n_at_update=interaction_n,
                             batch=batch,
                         )
                         last_grad_norm = proto_norm_this_round
@@ -538,6 +545,7 @@ def run_esl(
                 theta_after=logits,
                 prototype_update_norm=last_grad_norm,
                 final_flush=True,
+                interaction_n_at_update=interaction_n,
                 batch=batch,
             )
             prototype_step_m += 1
@@ -561,23 +569,33 @@ def run_esl(
             "epsilon_theta": cfg.convergence_epsilon_theta,
             "epsilon_b": cfg.convergence_epsilon_b,
         }
+    learned_p = stable_softmax(logits)
     summary_out: dict[str, Any] = {
         "final_matched_cross_entropy": final_ce,
+        "final_mce": mce_value(true_type_probs, logits),
         "permutation_true_to_learned": final_perm.tolist(),
         "cost_matrix": cost_mat.tolist(),
         "final_belief_entropy": belief_entropy(belief_tensor, cfg.num_agents, cfg.num_prototypes),
         "final_belief_argmax_accuracy": belief_argmax_accuracy(
             belief_tensor, true_types, final_perm, cfg.num_agents
         ),
+        "final_prototype_gap": matched_true_type_separation_p_coop(true_type_probs, logits),
+        "final_prototype_softmax": learned_p.tolist(),
         "cumulative_social_payoff": cum_social,
         "mean_payoff_per_agent_per_round": mean_per_round,
         "prototype_update_count": prototype_step_m,
+        "prototype_update_every_q": cfg.prototype_Q(),
+        "num_interaction_events_executed": int(interaction_n),
+        "p_obs": float(cfg.p_obs),
+        "prototype_lr_scale": float(cfg.prototype_lr_scale),
+        "init_noise": float(cfg.init_noise),
         "num_rounds": cfg.num_rounds,
         "num_rounds_executed": len(log.summary_rows),
         "stopped_on_convergence": stopped_on_convergence,
         "convergence_round": convergence_round,
         "convergence_thresholds": convergence_thresholds,
         "learning_frozen": cfg.learning_frozen,
+        "freeze_prototype_parameters": bool(cfg.freeze_prototype_parameters),
         "seed": cfg.seed,
         "mode": cfg.mode,
     }

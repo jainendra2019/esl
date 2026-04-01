@@ -12,6 +12,10 @@ This document is the **only** algorithm narrative for the repository: **what the
 | Metrics (MCE, belief CE/KL vs type) | `esl/metrics.py` |
 | Synthetic ground truth (not used by trainer) | `esl/synthetic_population.py` |
 
+### Run outputs (`summary_metrics.json`)
+
+`run_esl` writes a JSON summary including, among others: **`final_matched_cross_entropy`** (Hungarian **total** CE over matched pairs — legacy field), **`final_mce`** (paper-style \((1/K)\) × that total, via `mce_value`), **`final_belief_entropy`**, **`final_belief_argmax_accuracy`**, **`final_prototype_gap`** (Hungarian-matched \(|P(C)\) separation between true types 0 and 1), **`final_prototype_softmax`**, **`prototype_update_count`**, **`prototype_update_every_q`**, **`num_interaction_events_executed`**, **`p_obs`**, **`prototype_lr_scale`**, **`init_noise`**, **`freeze_prototype_parameters`**. Preset runs add **`run_manifest.json`** (see `esl/experiments/`).
+
 ---
 
 ## Current implementation

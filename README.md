@@ -144,6 +144,57 @@ python3 -m esl.plot_esl_mechanism \
 
 **`runs/`** is mostly gitignored; canonical flagship recovery outputs live under `runs/recovery_best_bal20_*_seed42/` and `..._seed43/` and are tracked. Reproduce other figures locally with the commands above.
 
+## NeurIPS-style recovery experiments (presets / sweeps / figures)
+
+Presets match the **20-agent balanced** flagship geometry (variable \(L_t\in[5,15]\), \(Q=15\), `prototype_lr_scale=22`, `init_noise=0.05`, …). Outputs default under **`runs/neurips/`** (gitignored except your own exceptions).
+
+```bash
+# List presets
+python3 -m esl.experiments list-presets
+
+# One smoke run (5 rounds — for CI / wiring checks)
+python3 -m esl.experiments run --preset recovery_flagship --smoke
+
+# Full flagship (10k rounds — long)
+python3 -m esl.experiments run --preset recovery_flagship --seed 42
+
+# Sparse observability (set p_obs in --variant)
+python3 -m esl.experiments run --preset recovery_sparse_obs --variant 0.5 --seed 42
+
+# Fixed interaction budget (500 events, L_t=10 per round → 50 rounds)
+python3 -m esl.experiments run --preset recovery_short_horizon --variant 500 --seed 42
+
+# Ablation knobs (variant = numeric parameter)
+python3 -m esl.experiments run --preset recovery_lr_sweep --variant 18 --seed 42
+python3 -m esl.experiments run --preset recovery_init_noise_sweep --variant 0.05 --seed 42
+python3 -m esl.experiments run --preset recovery_Q_sweep --variant 15 --seed 42
+
+# Weak recovery contrast + fixed-prototype baseline (beliefs only)
+python3 -m esl.experiments run --preset recovery_failure_case --seed 42
+python3 -m esl.experiments run --preset recovery_fixed_prototype_baseline --seed 42
+```
+
+**Sweep helper** (sequential full runs — long): see **`scripts/run_neurips_sweeps.sh`**.
+
+**Aggregate CSV** (schema v1) over completed runs under a root:
+
+```bash
+python3 -m esl.experiments aggregate runs/neurips -o runs/neurips/_aggregates/summary_all_runs.csv
+```
+
+**Plots** (after runs exist):
+
+```bash
+python3 -m esl.plot_neurips flagship runs/neurips/recovery_flagship/long/seed_42 \
+  -o runs/neurips/_figures/flagship_panels.png
+python3 -m esl.plot_neurips robustness runs/neurips/_aggregates/summary_all_runs.csv \
+  -o runs/neurips/_figures/robustness.png
+python3 -m esl.plot_neurips compare runs/neurips/recovery_failure_case/weak/seed_42 \
+  runs/neurips/recovery_flagship/long/seed_42 -o runs/neurips/_figures/compare.png
+```
+
+Each run writes **`summary_metrics.json`** (including `final_mce`, `final_prototype_gap`, `num_interaction_events_executed`, `prototype_update_every_q`, …) plus **`run_manifest.json`** (preset / variant / optional `target_interaction_budget`).
+
 ## Package layout
 
 | Path | Role |
@@ -154,11 +205,14 @@ python3 -m esl.plot_esl_mechanism \
 | `esl/beliefs.py`, `esl/prototypes.py`, `esl/metrics.py` | Core math |
 | `esl/synthetic_population.py` | Optional simulator ground truth (evaluation only; not used by `run_esl`) |
 | `esl/experiment_two_type_separation.py` | Three-condition experiment driver |
+| `esl/experiments/` | NeurIPS presets, `run_manifest.json`, aggregate CSV builder |
+| `esl/plot_neurips.py` | Flagship / robustness / compare figures |
 | `esl/plot_observability_separation.py` | Overlay separation curves across `p_obs` |
 | `esl/plot_esl_mechanism.py` | Two-panel mechanism figure |
 | `esl/hand_trace.py` | Traceable single-run diagnostics |
 | `tests/` | Pytest suite + plan |
 | `scripts/reproduce_paper_figures.sh` | One-shot quick (and optional full) local reproduction |
+| `scripts/run_neurips_sweeps.sh` | Batch sparse / budget / lr / noise / Q sweeps into `runs/neurips/` |
 
 ## Documentation
 
