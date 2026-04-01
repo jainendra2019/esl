@@ -1,4 +1,4 @@
-"""Contracts aligned with ALGORITHM.md (recovery vs adaptation, batch w=0, K cycling)."""
+"""Contracts aligned with ALGORITHM_CURRENT.md (recovery vs adaptation, batch w=0, K cycling)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from esl.trainer import BatchRecord, prototype_sgd_step_from_batch, run_esl
 def test_v12_batch_appends_w_zero_and_dilutes_mean_gradient():
     """
     Records with w=0 are appended; they add no gradient mass but increase |batch|
-    in the denominator of the mean (ALGORITHM.md §5).
+    in the denominator of the mean (ALGORITHM_CURRENT.md — prototype SGD).
     """
     cfg = ESLConfig(prototype_update_every=1, prototype_lr_scale=1.0, lr_prototype_gamma_exponent=0.0)
     logits = np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=np.float64)

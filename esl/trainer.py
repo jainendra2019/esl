@@ -1,6 +1,6 @@
 """Training loop: recovery and adaptation modes, batching, logging hooks.
 
-Implementation-level pseudocode (faithful to this file) lives in **ALGORITHM.md** at repo root.
+Implementation-level pseudocode (faithful to this file) lives in **ALGORITHM_CURRENT.md** at repo root (**ALGORITHM.md** indexes CURRENT vs TARGET).
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ import numpy as np
 from esl import beliefs as belief_ops
 from esl import games
 from esl.config import ESLConfig
+from esl.interaction_protocol import sample_L_t, sample_ordered_pairs_without_replacement
 from esl.metrics import (
     belief_argmax_accuracy,
     belief_entropy,
@@ -76,6 +77,52 @@ def convergence_criteria_met(
     return bool(h_ok and delta_ok and theta_ok and b_ok)
 
 
+def batch_prototype_step_diagnostics(
+    batch: list[BatchRecord], num_prototypes: int
+) -> dict[str, Any]:
+    """Stats for the batch driving one prototype SGD step (pre-clear snapshot)."""
+    out_base: dict[str, Any] = {
+        "batch_size": 0,
+        "batch_unique_ordered_pairs": 0,
+        "batch_mean_b_snap_per_prototype": [0.0] * num_prototypes,
+        "batch_delta_resp": 0.0,
+        "batch_mean_b_snap_entropy": 0.0,
+    }
+    for k in range(num_prototypes):
+        out_base[f"batch_frac_argmax_k{k}"] = 0.0
+    if not batch:
+        return out_base
+
+    pairs = {(rec.i, rec.j) for rec in batch}
+    means = np.zeros(num_prototypes, dtype=np.float64)
+    ent_sum = 0.0
+    argmax_counts = np.zeros(num_prototypes, dtype=np.int64)
+    n = len(batch)
+    for rec in batch:
+        b = np.asarray(rec.b_ij[:num_prototypes], dtype=np.float64)
+        means += b
+        b_safe = np.clip(b, 1e-12, 1.0)
+        b_safe = b_safe / b_safe.sum()
+        ent_sum += float(-np.sum(b_safe * np.log(b_safe)))
+        argmax_counts[int(np.argmax(b))] += 1
+    means /= n
+    mean_ent = ent_sum / n
+    if num_prototypes >= 2:
+        delta_resp = float(abs(means[0] - means[1]))
+    else:
+        delta_resp = 0.0
+    out: dict[str, Any] = {
+        "batch_size": int(n),
+        "batch_unique_ordered_pairs": int(len(pairs)),
+        "batch_mean_b_snap_per_prototype": [float(x) for x in means.tolist()],
+        "batch_delta_resp": delta_resp,
+        "batch_mean_b_snap_entropy": float(mean_ent),
+    }
+    for k in range(num_prototypes):
+        out[f"batch_frac_argmax_k{k}"] = float(argmax_counts[k] / n)
+    return out
+
+
 def prototype_sgd_step_from_batch(
     batch: list[BatchRecord],
     logits: np.ndarray,
@@ -83,10 +130,10 @@ def prototype_sgd_step_from_batch(
     prototype_step_m: int,
 ) -> tuple[np.ndarray, float]:
     """
-    §4.11: For each record with w > 0, accumulate per-prototype gradients
+    §5.11: For each record with w > 0, accumulate per-prototype gradients
     g_k = w · b_snap[k] · (e_s − softmax(θ_k)); then **mean over full |batch|**
     (records with w ≤ 0 contribute 0 to the sum but still increase the divisor).
-    Finally θ ← θ + γ_m · g_mean.
+    Finally θ ← θ + γ_m · (g_mean − η_reg θ) when prototype_l2_eta > 0; else θ ← θ + γ_m · g_mean.
     """
     g_accum = np.zeros_like(logits)
     for rec in batch:
@@ -96,8 +143,10 @@ def prototype_sgd_step_from_batch(
         g_accum += batch_weighted_prototype_gradient(logits, wk, rec.signal)
     denom = max(len(batch), 1)
     g_mean = g_accum / denom
+    eta = float(cfg.prototype_l2_eta)
+    g_step = g_mean - eta * logits
     gamma = cfg.prototype_lr(prototype_step_m)
-    delta_theta = gamma * g_mean
+    delta_theta = gamma * g_step
     return logits + delta_theta, float(np.linalg.norm(delta_theta))
 
 
@@ -112,7 +161,7 @@ def observe_signal_update_belief(
     cfg: ESLConfig,
 ) -> BatchRecord:
     """
-    PRD §7 ordering: snapshot b_{i→j,t} → (if w>0) Bayes update to B_{t+1} → return BatchRecord.
+    PRD §8 ordering: snapshot b_{i→j,t} → (if w>0) Bayes update to B_{t+1} → return BatchRecord.
 
     Always returns a record with pre-update ``b_ij`` in the batch row. When ``w == 0``,
     beliefs are unchanged and the record still carries ``w=0`` so the caller can append it;
@@ -121,7 +170,7 @@ def observe_signal_update_belief(
     """
     b_ij_t = belief_tensor[i, j].copy()
     if w > 0:
-        # Unclipped softmax likelihoods for Bayes (PRD §4.6); never clamp L_k for the update.
+        # Unclipped softmax likelihoods for Bayes (PRD §5.6); never clamp L_k for the update.
         lk = likelihoods(logits, signal)
         belief_tensor[i, j] = belief_ops.update_belief_pair(
             belief_tensor[i, j],
@@ -152,22 +201,25 @@ def _append_prototype_update_event(
     theta_after: np.ndarray,
     prototype_update_norm: float,
     final_flush: bool,
+    batch: list[BatchRecord] | None = None,
 ) -> None:
     p_before = stable_softmax(np.asarray(theta_before, dtype=np.float64))
     p_after = stable_softmax(np.asarray(theta_after, dtype=np.float64))
-    log.prototype_update_events.append(
-        {
-            "prototype_update_every": cfg.prototype_update_every,
-            "prototype_update_index_m": int(update_index_m),
-            "env_round_ended": int(env_round_ended),
-            "final_flush": bool(final_flush),
-            "prototype_update_norm": float(prototype_update_norm),
-            "theta_before": theta_before.tolist(),
-            "theta_after": theta_after.tolist(),
-            "p_before": p_before.tolist(),
-            "p_after": p_after.tolist(),
-        }
-    )
+    evt: dict[str, Any] = {
+        "prototype_update_every": cfg.prototype_Q(),
+        "prototype_update_every_interactions": cfg.prototype_Q(),
+        "prototype_update_index_m": int(update_index_m),
+        "env_round_ended": int(env_round_ended),
+        "final_flush": bool(final_flush),
+        "prototype_update_norm": float(prototype_update_norm),
+        "theta_before": theta_before.tolist(),
+        "theta_after": theta_after.tolist(),
+        "p_before": p_before.tolist(),
+        "p_after": p_after.tolist(),
+    }
+    if batch is not None:
+        evt.update(batch_prototype_step_diagnostics(batch, cfg.num_prototypes))
+    log.prototype_update_events.append(evt)
 
 
 def init_prototype_logits(cfg: ESLConfig, rng: np.random.Generator) -> np.ndarray:
@@ -239,14 +291,17 @@ def run_esl(
     Main ESL loop. **Recovery:** actions from fixed ``hidden_policies`` only (never ``act_agent``).
     **Adaptation:** actions from ``act_agent`` (ESL softmax best response vs beliefs + θ).
 
-    One random ordered pair (i,j) per round unless ``force_ordered_pair`` is set; signal s = a_j.
-    Belief / batch / prototype ordering: see PRD §7 and **ALGORITHM.md**.
+    Each environment round samples ``L_t`` ordered pairs (without replacement) when
+    ``force_ordered_pair`` is unset; otherwise uses that single pair. Interactions run
+    sequentially; signal ``s = a_j`` per pair. Prototype SGD runs every ``Q`` interaction
+    events (``prototype_Q()``), not once per round. Belief / batch ordering: PRD §8 and
+    **ALGORITHM_CURRENT.md**.
 
     If ``learning_frozen``: no Bayes updates and no batch appends (beliefs stay at init).
 
     If ``stop_on_convergence``: after each round (once at least ``convergence_window_w`` rounds
     exist), the trainer may break early when entropy, matched separation, and windowed stability
-    norms all satisfy configured thresholds; ``num_rounds`` is a hard cap. See **ALGORITHM.md**.
+    norms all satisfy configured thresholds; ``num_rounds`` is a hard cap. See **ALGORITHM_CURRENT.md**.
     """
     cfg.validate()
     rng = cfg.make_rng()
@@ -286,113 +341,134 @@ def run_esl(
 
     stopped_on_convergence = False
     convergence_round: int | None = None
+    Q = cfg.prototype_Q()
+    interaction_n = 0
     t = 0
     while t < cfg.num_rounds:
-        belief_before = belief_tensor.copy()
+        belief_before_round = belief_tensor.copy()
+        proto_norm_this_round = 0.0
+        batch_ll_round = 0.0
+
         if cfg.force_ordered_pair is not None:
-            i, j = cfg.force_ordered_pair
+            E_t = [cfg.force_ordered_pair]
         else:
-            pairs = [(i, j) for i in range(cfg.num_agents) for j in range(cfg.num_agents) if i != j]
-            idx = int(rng.integers(0, len(pairs)))
-            i, j = pairs[idx]
-
-        if cfg.mode == "recovery":
-            a_j = hidden_policies[j].act(rng, last_opponent_action=last_opp[j])
-            a_i = hidden_policies[i].act(rng, last_opponent_action=last_opp[i])
-        else:
-            a_i = act_agent(
-                i,
-                j,
-                cfg=cfg,
-                rng=rng,
-                is_row_player=True,
-                hidden_policies=hidden_policies,
-                esl_mask=esl_mask,
-                belief_tensor=belief_tensor,
-                logits=logits,
-                pay=pay,
-                last_opp=last_opp,
+            L_t = sample_L_t(
+                rng,
+                cfg.interaction_pairs_min,
+                cfg.interaction_pairs_max,
+                law=cfg.interaction_pairs_law,
             )
-            a_j = act_agent(
-                j,
-                i,
-                cfg=cfg,
-                rng=rng,
-                is_row_player=False,
-                hidden_policies=hidden_policies,
-                esl_mask=esl_mask,
-                belief_tensor=belief_tensor,
-                logits=logits,
-                pay=pay,
-                last_opp=last_opp,
-            )
+            E_t = sample_ordered_pairs_without_replacement(rng, cfg.num_agents, L_t)
 
-        last_opp[i] = a_j
-        last_opp[j] = a_i
-
-        r_i, r_j = games.play_pair_payoffs(a_i, a_j, pay)
-        log.reward_rows.append({"round": t, "i": i, "j": j, "r_i": r_i, "r_j": r_j})
-
-        # --- Two-timescale contract (PRD §7): observe -> beliefs -> batch; prototypes later ---
-        w = sample_observation_mask(cfg, rng)
-        s = action_to_signal(a_j)
-        if cfg.learning_frozen:
-            b_frozen = belief_tensor[i, j].copy()
-            batch_ll = (
-                float(
-                    np.sum(
-                        b_frozen
-                        * w
-                        * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
-                    )
+        for (i, j) in E_t:
+            if cfg.mode == "recovery":
+                a_j = hidden_policies[j].act(rng, last_opponent_action=last_opp[j])
+                a_i = hidden_policies[i].act(rng, last_opponent_action=last_opp[i])
+            else:
+                a_i = act_agent(
+                    i,
+                    j,
+                    cfg=cfg,
+                    rng=rng,
+                    is_row_player=True,
+                    hidden_policies=hidden_policies,
+                    esl_mask=esl_mask,
+                    belief_tensor=belief_tensor,
+                    logits=logits,
+                    pay=pay,
+                    last_opp=last_opp,
                 )
-                if w > 0
-                else 0.0
-            )
-        else:
-            rec = observe_signal_update_belief(
-                belief_tensor, logits, i=i, j=j, signal=s, w=w, cfg=cfg
-            )
-            batch.append(rec)
-            batch_ll = (
-                float(
-                    np.sum(
-                        rec.b_ij
-                        * w
-                        * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
-                    )
+                a_j = act_agent(
+                    j,
+                    i,
+                    cfg=cfg,
+                    rng=rng,
+                    is_row_player=False,
+                    hidden_policies=hidden_policies,
+                    esl_mask=esl_mask,
+                    belief_tensor=belief_tensor,
+                    logits=logits,
+                    pay=pay,
+                    last_opp=last_opp,
                 )
-                if w > 0
-                else 0.0
-            )
 
-        belief_change_norm = float(np.sum(np.abs(belief_tensor - belief_before)))
+            last_opp[i] = a_j
+            last_opp[j] = a_i
+
+            r_i, r_j = games.play_pair_payoffs(a_i, a_j, pay)
+            log.reward_rows.append({"round": t, "i": i, "j": j, "r_i": r_i, "r_j": r_j})
+
+            w = sample_observation_mask(cfg, rng)
+            s = action_to_signal(a_j)
+            if cfg.learning_frozen:
+                b_frozen = belief_tensor[i, j].copy()
+                batch_ll = (
+                    float(
+                        np.sum(
+                            b_frozen
+                            * w
+                            * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
+                        )
+                    )
+                    if w > 0
+                    else 0.0
+                )
+            else:
+                rec = observe_signal_update_belief(
+                    belief_tensor, logits, i=i, j=j, signal=s, w=w, cfg=cfg
+                )
+                batch.append(rec)
+                batch_ll = (
+                    float(
+                        np.sum(
+                            rec.b_ij
+                            * w
+                            * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
+                        )
+                    )
+                    if w > 0
+                    else 0.0
+                )
+                interaction_n += 1
+                if interaction_n % Q == 0 and batch:
+                    if cfg.freeze_prototype_parameters:
+                        batch.clear()
+                    else:
+                        theta_before = logits.copy()
+                        m_step = prototype_step_m
+                        logits, proto_norm_this_round = prototype_sgd_step_from_batch(
+                            batch, logits, cfg, m_step
+                        )
+                        _append_prototype_update_event(
+                            log,
+                            cfg=cfg,
+                            update_index_m=m_step,
+                            env_round_ended=t,
+                            theta_before=theta_before,
+                            theta_after=logits,
+                            prototype_update_norm=proto_norm_this_round,
+                            final_flush=False,
+                            batch=batch,
+                        )
+                        last_grad_norm = proto_norm_this_round
+                        prototype_step_m += 1
+                        batch.clear()
+
+            batch_ll_round = batch_ll
+
+            if cfg.log_beliefs_tensor and cfg.log_beliefs_every_interaction:
+                for ii in range(cfg.num_agents):
+                    for jj in range(cfg.num_agents):
+                        if ii == jj:
+                            continue
+                        br = {"round": t, "i": ii, "j": jj}
+                        for k in range(cfg.num_prototypes):
+                            br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
+                        log.belief_rows.append(br)
+
+        belief_change_norm = float(np.sum(np.abs(belief_tensor - belief_before_round)))
 
         alpha_eff = cfg.belief_lr(t)
-        proto_norm_this_round = 0.0
-        if not cfg.learning_frozen and (t + 1) % cfg.prototype_update_every == 0 and batch:
-            if cfg.freeze_prototype_parameters:
-                batch.clear()
-            else:
-                theta_before = logits.copy()
-                m_step = prototype_step_m
-                logits, proto_norm_this_round = prototype_sgd_step_from_batch(
-                    batch, logits, cfg, m_step
-                )
-                _append_prototype_update_event(
-                    log,
-                    cfg=cfg,
-                    update_index_m=m_step,
-                    env_round_ended=t,
-                    theta_before=theta_before,
-                    theta_after=logits,
-                    prototype_update_norm=proto_norm_this_round,
-                    final_flush=False,
-                )
-                last_grad_norm = proto_norm_this_round
-                prototype_step_m += 1
-                batch.clear()
-
         perm, total_ce = match_prototypes_to_types(true_type_probs, logits)
         summary = {
             "round": t,
@@ -401,7 +477,7 @@ def run_esl(
             "belief_argmax_accuracy": belief_argmax_accuracy(
                 belief_tensor, true_types, perm, cfg.num_agents
             ),
-            "batch_log_likelihood": batch_ll,
+            "batch_log_likelihood": batch_ll_round,
             "alpha_logged": alpha_eff,
             "prototype_step_m": prototype_step_m,
             "prototype_update_norm": proto_norm_this_round,
@@ -409,7 +485,6 @@ def run_esl(
         }
         log.summary_rows.append(summary)
 
-        # Prototype trajectory row
         row: dict[str, Any] = {"round": t, "prototype_step_m": prototype_step_m}
         for k in range(cfg.num_prototypes):
             for a in range(cfg.num_actions):
@@ -420,14 +495,15 @@ def run_esl(
                 row[f"softmax_{k}_{a}"] = float(sm[a])
         log.prototype_rows.append(row)
 
-        for ii in range(cfg.num_agents):
-            for jj in range(cfg.num_agents):
-                if ii == jj:
-                    continue
-                br = {"round": t, "i": ii, "j": jj}
-                for k in range(cfg.num_prototypes):
-                    br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
-                log.belief_rows.append(br)
+        if cfg.log_beliefs_tensor and (not cfg.log_beliefs_every_interaction):
+            for ii in range(cfg.num_agents):
+                for jj in range(cfg.num_agents):
+                    if ii == jj:
+                        continue
+                    br = {"round": t, "i": ii, "j": jj}
+                    for k in range(cfg.num_prototypes):
+                        br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
+                    log.belief_rows.append(br)
 
         if cfg.stop_on_convergence and (t + 1) >= cfg.convergence_window_w:
             if convergence_criteria_met(
@@ -462,6 +538,7 @@ def run_esl(
                 theta_after=logits,
                 prototype_update_norm=last_grad_norm,
                 final_flush=True,
+                batch=batch,
             )
             prototype_step_m += 1
             batch.clear()
@@ -510,6 +587,9 @@ def run_esl(
     _write_csv(run_dir / "belief_trajectory.csv", log.belief_rows)
     _write_csv(run_dir / "reward_trajectory.csv", log.reward_rows)
     _write_csv(run_dir / "metrics_trajectory.csv", log.summary_rows)
+    _write_prototype_update_steps_csv(
+        run_dir / "prototype_update_steps.csv", log.prototype_update_events
+    )
 
     return log, logits, belief_tensor, summary_out, run_dir
 
@@ -523,6 +603,42 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     for r in rows:
         lines.append(",".join(str(r[k]) for k in keys))
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _write_prototype_update_steps_csv(
+    path: Path, events: list[dict[str, Any]]
+) -> None:
+    """One row per prototype SGD step; flattens softmax rows and batch diagnostics."""
+    if not events:
+        path.write_text("", encoding="utf-8")
+        return
+    rows: list[dict[str, Any]] = []
+    for ev in events:
+        pa = ev["p_after"]
+        k_proto = len(pa)
+        n_act = len(pa[0])
+        row: dict[str, Any] = {
+            "prototype_update_index_m": ev["prototype_update_index_m"],
+            "env_round_ended": ev["env_round_ended"],
+            "final_flush": ev["final_flush"],
+            "prototype_update_norm": ev["prototype_update_norm"],
+        }
+        row["batch_size"] = ev.get("batch_size", "")
+        row["batch_unique_ordered_pairs"] = ev.get("batch_unique_ordered_pairs", "")
+        mbs = ev.get("batch_mean_b_snap_per_prototype")
+        if isinstance(mbs, list):
+            for k in range(len(mbs)):
+                row[f"batch_mean_b_snap_k{k}"] = mbs[k]
+        row["batch_delta_resp"] = ev.get("batch_delta_resp", "")
+        row["batch_mean_b_snap_entropy"] = ev.get("batch_mean_b_snap_entropy", "")
+        for k in range(k_proto):
+            key = f"batch_frac_argmax_k{k}"
+            row[key] = ev.get(key, "")
+        for k in range(k_proto):
+            for a in range(n_act):
+                row[f"softmax_k{k}_a{a}"] = pa[k][a]
+        rows.append(row)
+    _write_csv(path, rows)
 
 
 # Expose gradient for tests

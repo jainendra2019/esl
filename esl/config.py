@@ -10,6 +10,7 @@ from typing import Any, Literal
 import numpy as np
 
 ExperimentMode = Literal["recovery", "adaptation"]
+InteractionPairsLaw = Literal["uniform"]
 
 # Paper / debug: fixed (observer, target) and explicit θ (list-of-lists JSON-serializable).
 ForceOrderedPair = tuple[int, int] | None
@@ -40,7 +41,7 @@ class ESLConfig:
     delta_simplex: float = 1e-4
     # Small additive term in the Bayes posterior denominator for numerical stability only.
     bayes_denominator_eps: float = 1e-12
-    # §4.6: clamp softmax mass before log(p) in log-likelihood telemetry
+    # §5.6: clamp softmax mass before log(p) in log-likelihood telemetry
     log_prob_min: float = 1e-8
 
     base_init: float = 0.0
@@ -60,8 +61,27 @@ class ESLConfig:
     convergence_epsilon_theta: float = 0.01
     # max over the last W rounds of belief_change_norm must be < this.
     convergence_epsilon_b: float = 0.01
-    # Slow timescale: prototype SGD every M env steps (PRD §7; default M=5).
+    # Slow timescale: prototype SGD every Q **interaction events** (batch rows appended).
+    # Legacy name preserved for JSON; if prototype_update_every_interactions is set, validate() sets this equal.
     prototype_update_every: int = 5
+    # When not None, validate() overwrites prototype_update_every to this value (canonical Q).
+    prototype_update_every_interactions: int | None = None
+
+    # Interactions per environment round: sample L_t uniformly in [min, max] (or constant if min==max).
+    # Ignored when force_ordered_pair is set (locked: fixed pair ⇒ L_t=1).
+    interaction_pairs_min: int = 1
+    interaction_pairs_max: int = 1
+    interaction_pairs_law: InteractionPairsLaw = "uniform"
+
+    # Slow-scale L2: θ ← θ + γ (ḡ − η_reg θ). Default 0 preserves legacy updates.
+    prototype_l2_eta: float = 0.0
+
+    # If True, append belief_trajectory rows after every interaction (large logs). Default: end-of-round only.
+    log_beliefs_every_interaction: bool = False
+
+    # If False, do not store belief tensors for CSV output (reduces memory/disk for long runs).
+    # Summary metrics (entropy / argmax accuracy) are still computed from in-memory beliefs.
+    log_beliefs_tensor: bool = True
 
     observability: Literal["full", "sparse"] = "full"
     p_obs: float = 1.0
@@ -86,6 +106,25 @@ class ESLConfig:
             raise ValueError("delta_simplex too large for K (K*delta must be <= 1)")
         if self.prototype_update_every < 1:
             raise ValueError("prototype_update_every must be >= 1")
+        if self.prototype_update_every_interactions is not None:
+            qi = int(self.prototype_update_every_interactions)
+            if qi < 1:
+                raise ValueError("prototype_update_every_interactions must be >= 1")
+            self.prototype_update_every = qi
+        if self.prototype_l2_eta < 0.0:
+            raise ValueError("prototype_l2_eta must be >= 0")
+        max_pairs = self.num_agents * max(self.num_agents - 1, 0)
+        if max_pairs > 0:
+            if not (
+                1 <= self.interaction_pairs_min <= self.interaction_pairs_max <= max_pairs
+            ):
+                raise ValueError(
+                    "need 1 <= interaction_pairs_min <= interaction_pairs_max "
+                    f"<= N(N-1)={max_pairs} (got min={self.interaction_pairs_min}, "
+                    f"max={self.interaction_pairs_max})"
+                )
+        elif self.interaction_pairs_max > 0:
+            raise ValueError("num_agents too small for any ordered pair")
         if self.force_ordered_pair is not None:
             io, jo = self.force_ordered_pair
             if not (0 <= io < self.num_agents and 0 <= jo < self.num_agents):
@@ -124,6 +163,10 @@ class ESLConfig:
 
     def belief_lr(self, round_t: int) -> float:
         return float((round_t + 1) ** self.lr_belief_alpha_exponent)
+
+    def prototype_Q(self) -> int:
+        """Q: prototype SGD every Q interaction events (batch appends)."""
+        return int(self.prototype_update_every)
 
     def prototype_lr(self, step_m: int) -> float:
         return self.prototype_lr_scale * float((step_m + 1) ** self.lr_prototype_gamma_exponent)

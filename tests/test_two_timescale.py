@@ -1,4 +1,4 @@
-"""PRD §7: batch stores pre-Bayes b_{i->j,t}; beliefs advance before append."""
+"""PRD §8: batch stores pre-Bayes b_{i->j,t}; beliefs advance before append."""
 
 from __future__ import annotations
 

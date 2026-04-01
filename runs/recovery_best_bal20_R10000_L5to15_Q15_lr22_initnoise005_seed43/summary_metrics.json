@@ -1,0 +1,30 @@
+{
+  "final_matched_cross_entropy": 0.04258262071311221,
+  "permutation_true_to_learned": [
+    1,
+    0
+  ],
+  "cost_matrix": [
+    [
+      3.8511698227841293,
+      0.02109862608862386
+    ],
+    [
+      0.021483994624488353,
+      3.8690781200155446
+    ]
+  ],
+  "final_belief_entropy": 0.0980391132797322,
+  "final_belief_argmax_accuracy": 1.0,
+  "cumulative_social_payoff": 451673.0,
+  "mean_payoff_per_agent_per_round": 2.26470617729643,
+  "prototype_update_count": 6648,
+  "num_rounds": 10000,
+  "num_rounds_executed": 10000,
+  "stopped_on_convergence": false,
+  "convergence_round": null,
+  "convergence_thresholds": null,
+  "learning_frozen": false,
+  "seed": 43,
+  "mode": "recovery"
+}

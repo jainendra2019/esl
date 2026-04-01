@@ -82,6 +82,14 @@ def print_prototype_update_log(log: RunLog, cfg: ESLConfig) -> None:
             f"\n--- prototype update #{m} ({tag}) | "
             f"env_round_ended={t_end} (0-based) | prototype_update_norm={norm:.6g} ---"
         )
+        if ev.get("batch_size") is not None:
+            print(
+                f"  batch_size={ev['batch_size']}  "
+                f"unique_ordered_pairs={ev.get('batch_unique_ordered_pairs', '?')}  "
+                f"mean_b_snap={ev.get('batch_mean_b_snap_per_prototype', '?')}  "
+                f"delta_resp={ev.get('batch_delta_resp', '?')}  "
+                f"H_b_snap_mean={ev.get('batch_mean_b_snap_entropy', '?')}"
+            )
         for k in range(len(tb)):
             print(f"  theta_{k}_before = {tb[k]}")
             print(f"  theta_{k}_after  = {ta[k]}")

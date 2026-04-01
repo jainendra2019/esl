@@ -37,7 +37,7 @@ def softmax_log_likelihood(logits: np.ndarray, action: int) -> np.ndarray:
 
 def softmax_log_likelihood_clamped(logits: np.ndarray, action: int, log_prob_min: float) -> np.ndarray:
     """
-    §4.6: log L_k with log(max(p(a), log_prob_min)) for stable telemetry (not used in gradients).
+    §5.6: log L_k with log(max(p(a), log_prob_min)) for stable telemetry (not used in gradients).
     """
     p = stable_softmax(logits)
     pa = np.clip(p[:, int(action)], log_prob_min, 1.0)

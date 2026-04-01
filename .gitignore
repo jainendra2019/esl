@@ -1,5 +1,9 @@
-# Local experiment outputs (regenerate with python -m esl.experiment_two_type_separation)
-runs/
+# Local experiment outputs — ignore by default; canonical flagship runs are tracked
+runs/*
+!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed42/
+!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed42/**
+!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed43/
+!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed43/**
 
 # Scratch / temp experiment dirs
 _tmp*/

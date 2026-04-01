@@ -1,6 +1,6 @@
 # ESL — Epistemic Social Learning
 
-Code for **multi-agent belief dynamics** and **slow prototype (latent-type) learning** in repeated 2-action games. Beliefs update every environmental step; prototype logits update on a slower schedule with **averaged batch gradients** (two-timescale ESL). See **`PRD.md`** for the full specification.
+Code for **multi-agent belief dynamics** and **slow prototype (latent-type) learning** in repeated 2-action games. ESL is a **feedback-coupled** system: observations depend on actions driven by **current** beliefs and (in adaptation mode) best responses—so data are **endogenous**, not i.i.d. latent-variable samples. Beliefs update every environmental step; prototype logits update on a slower schedule with **averaged batch gradients** over full interaction batches (two-timescale stochastic approximation; see **PRD.md** §3, §5, §8 and **ALGORITHM.md** / **ALGORITHM_CURRENT.md**).
 
 **Repository:** [github.com/jainendra2019/esl](https://github.com/jainendra2019/esl)
 
@@ -111,7 +111,7 @@ python3 -m esl.plot_esl_mechanism \
   --out runs/paper_figures/figure_mechanism_obs05.png
 ```
 
-Generated **`runs/`** is gitignored; reproduce figures locally with the commands above.
+**`runs/`** is mostly gitignored; canonical flagship recovery outputs live under `runs/recovery_best_bal20_*_seed42/` and `..._seed43/` and are tracked. Reproduce other figures locally with the commands above.
 
 ## Package layout
 
@@ -130,7 +130,9 @@ Generated **`runs/`** is gitignored; reproduce figures locally with the commands
 ## Documentation
 
 - **`PRD.md`** — product / algorithm requirements used to align implementation and tests.
-- **`ALGORITHM.md`** — implementation-faithful pseudocode (recovery vs adaptation, batch/`w`, gradients, logging).
+- **`ALGORITHM.md`** — index to **ALGORITHM_CURRENT.md** (what the code does) and **ALGORITHM_TARGET.md** (theory-aligned target).
+- **`ALGORITHM_CURRENT.md`** — implementation-faithful loop (variable \(L_t\), \(Q\), batch/`w`, gradients, logging).
+- **`esl/synthetic_population.py`** — optional simulator ground truth (not used by `run_esl`).
 
 ## License
 

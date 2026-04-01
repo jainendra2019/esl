@@ -99,7 +99,7 @@ def test_v6_no_belief_update_when_unobserved():
 @pytest.mark.verification
 def test_v7_batch_stores_b_ij_t_before_bayes_not_b_ij_t_plus_1():
     """
-    Subtle contract (PRD §4.9 / §4.11): batch weight must be b_{i→j,t} **before** the Bayes
+    Subtle contract (PRD §5.9 / §5.11): batch weight must be b_{i→j,t} **before** the Bayes
     step from the current signal — never the posterior b_{i→j,t+1} after updating on s_{ij,t}.
     """
     cfg = ESLConfig(delta_simplex=1e-4)

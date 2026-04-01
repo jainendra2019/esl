@@ -2,21 +2,19 @@ PRD: Epistemic Social Learning (ESL) MVP — Senior-Reviewed Version
 
 1. Goal
 
-Implement a minimal, correct, interpretable version of Epistemic Social Learning (ESL) for repeated 2-action matrix games.
+Implement a minimal, correct, interpretable version of Epistemic Social Learning (ESL) as a **feedback-coupled latent-structure learning system** in repeated multi-agent interaction.
 
-The MVP should demonstrate that:
-	1.	agents maintain pairwise beliefs over latent behavioral prototypes,
-	2.	beliefs update from observed actions/signals via Bayes’ rule,
-	3.	prototype parameters update via belief-weighted stochastic gradient ascent on a likelihood objective,
-	4.	under slight initialization asymmetry, the learned prototypes specialize and recover latent behavioral types up to permutation.
+The MVP should demonstrate:
 
-This MVP is for:
-	•	validation of the core algorithm,
-	•	debugging,
-	•	producing first recovery plots,
-	•	preparing the empirical section of the paper.
+	1.	Agents maintain **pairwise beliefs over latent behavioral prototypes**.
+	2.	Beliefs update via **Bayesian filtering under endogenous data** (observations drawn from policies that depend on the current ESL state).
+	3.	Prototype parameters update via **belief-weighted stochastic gradient ascent** on a likelihood-based objective estimated from interaction batches.
+	4.	**Data is endogenously generated**: beliefs → actions → observations → belief updates → (scheduled) prototype updates.
+	5.	The system exhibits **emergent specialization of prototypes** under initialization asymmetry (recovery) and, in adaptation mode, strategic behavior under beliefs.
 
-It is not the final scalable implementation.
+This is **not** a standard EM / i.i.d. latent-variable setting: observations are not exogenous and identically distributed; latent assignments and beliefs affect **future** data; learning is a **closed-loop stochastic process**.
+
+This MVP is for validation of the core algorithm, debugging, first recovery plots, and the empirical section of the paper. It is not the final scalable implementation.
 
 ⸻
 
@@ -32,6 +30,7 @@ In scope
 	•	belief update via Bayes + Euclidean projection onto $\Delta_K^\delta$
 	•	prototype update via stochastic gradient ascent
 	•	evaluation in both recovery and adaptation modes
+	•	explicit **two-timescale** coupling: fast beliefs vs. slow prototypes (see §8)
 
 Out of scope
 	•	fuzzy clustering / FCM
@@ -44,15 +43,31 @@ Out of scope
 
 ⸻
 
-3. Two supported experiment modes
+3. Core system property: feedback-coupled learning
+
+Unlike classical latent-variable models with exogenous data:
+
+- **Observations are not fixed in distribution**; the data-generating process depends on the current beliefs, policies, and (in adaptation mode) best responses.
+- The **sampling distribution of signals evolves** with the system state $(B_t,\Theta_t)$.
+
+At each environment step the intended causal chain is:
+
+**beliefs → actions → observations → belief updates → (scheduled) prototype updates**
+
+This induces **non-stationarity**, **Markovian dependence** across rounds, and **state-dependent noise** in stochastic gradient estimates for $\Theta$.
+
+**Implementation requirement:** the reference code **must** respect this ordering (snapshot beliefs before Bayes on the current signal; use current $\Theta_t$ in likelihoods for the belief update; apply prototype steps only on the slow schedule; average gradients over full batch length $|B|$ including $W=0$ rows—see §5.11 and §8).
+
+⸻
+
+4. Two supported experiment modes
 
 Mode A — Recovery mode (required first)
 
 Purpose: verify prototype recovery cleanly.
-	•	Data-generating agents use fixed hidden policies
-	•  These hidden policies are exogenous data generators and are not
-	   updated during training.
-	•	ESL learner(s) observe them and learn prototypes
+	•	Data-generating agents use fixed hidden policies (not updated during training).
+	•	Those policies are **exogenous to the learner’s parameter updates**, but the **ESL state** $(B_t,\Theta_t)$ still evolves in closed loop: sampled pairs, actions, and sparse observations drive Bayes and batched prototype steps.
+	•	ESL learner(s) observe opponents and learn prototypes
 	•	Recommended hidden types:
 	•	Always Cooperate
 	•	Always Defect
@@ -65,16 +80,16 @@ This is the first mode to implement.
 Mode B — Strategic adaptation mode (second)
 
 Purpose: test whether ESL improves payoff via adaptation.
-	•	ESL agents choose actions via logit best response
-	•	recovery is still tracked, but payoff becomes a main metric
+	•	ESL agents choose actions via logit best response using **current** beliefs and $\Theta_t$ — actions (and thus observations) are **fully endogenous** to the ESL state.
+	•	Recovery metrics are still tracked; payoff becomes a main metric
 
 **MVP default:** all agents use logit best response (homogeneous adaptation). Mixed populations (some fixed hidden opponents, some BR learners) are a **possible extension** via a mask or role flags; they are **not** required for MVP correctness and need not appear in the core PRD checklist.
 
 ⸻
 
-4. Mathematical specification
+5. Mathematical specification
 
-4.1 Action space
+5.1 Action space
 
 Use a finite 2-action set:
 \mathcal A = \{0,1\}
@@ -85,7 +100,7 @@ Recommended semantic mapping:
 
 ⸻
 
-4.2 Signal space
+5.2 Signal space
 
 For MVP:
 \mathcal S = \mathcal A
@@ -97,7 +112,7 @@ This means the observed signal is the observed opponent action.
 
 ⸻
 
-4.3 Context
+5.3 Context
 
 For MVP:
 \omega_t \equiv \text{constant}
@@ -107,7 +122,7 @@ Do not build a context/state system in v1.
 
 ⸻
 
-4.4 Observability
+5.4 Observability
 
 For each ordered pair (i,j):
 W_{ij,t}\in\{0,1\}
@@ -122,7 +137,7 @@ Support two modes:
 
 ⸻
 
-4.5 Prototype parameters
+5.5 Prototype parameters
 
 Each prototype k\in\{1,\dots,K\} is represented by:
 \theta_k\in\mathbb R^{|\mathcal A|}
@@ -134,7 +149,7 @@ These are logits, not probabilities.
 
 ⸻
 
-4.6 Likelihood model
+5.6 Likelihood model
 
 Define the prototype likelihood:
 L_k(s=a\mid\theta_k)
@@ -148,7 +163,7 @@ Implementation requirement:
 
 ⸻
 
-4.7 Pairwise beliefs
+5.7 Pairwise beliefs
 
 For each ordered pair (i,j), i\neq j, maintain:
 b_{i\to j,t}\in\Delta_K^\delta
@@ -163,7 +178,7 @@ Use:
 
 ⸻
 
-4.8 Belief update
+5.8 Belief update
 
 If W_{ij,t}=1, compute the **unnormalized** Bayes posterior:
 \tilde b_{i\to j,t+1}[k]
@@ -190,7 +205,7 @@ Implementation guardrails:
 
 ⸻
 
-4.9 Prototype learning objective
+5.9 Prototype learning objective
 
 Population objective:
 \mathcal L(\Theta)
@@ -206,9 +221,11 @@ In code, use a stochastic batch estimate:
 \sum_{(i,j)\in\text{batch}}\sum_{k=1}^K
 W_{ij,t}\,b_{i\to j,t}[k]\log L_k(s_{ij,t}\mid\theta_k)
 
+**Interpretation (not classical EM):** this is **not** a fixed log-likelihood under i.i.d. latent assignments. The distribution of $(i,j,s_{ij,t},W_{ij,t})$ in the batch is **state-dependent**, induced by current beliefs $B_t$, the sampling of interaction pairs, and (in adaptation mode) policies that depend on $B_t$ and payoffs. Stochastic gradient estimates for $\Theta$ are therefore **biased** finite-sample SA directions; in the two-timescale regime they are understood to track a **mean-field drift** (ODE limit) rather than an exact score of a static marginal likelihood.
+
 ⸻
 
-4.10 Gradient
+5.10 Gradient
 
 Let
 p_k = \text{softmax}(\theta_k)
@@ -223,7 +240,7 @@ This must be implemented directly and also unit-tested against finite difference
 
 ⸻
 
-4.11 Prototype update
+5.11 Prototype update
 
 At prototype-update step m:
 \theta_{k,m+1}
@@ -238,7 +255,7 @@ Implementation detail:
 The belief weights $b_{i\to j}[k]$ used in the gradient must be the
 snapshot taken \textbf{before} applying the Bayes update from the
 current signal $s_{ij,t}$. This ensures consistency with the stochastic
-objective defined in Section 4.9.
+objective defined in Section 5.9.
 
 Important:
 	•	prototype update uses batch observations
@@ -250,7 +267,7 @@ Important:
 
 ⸻
 
-4.12 Policy
+5.12 Policy
 
 Recovery mode
 
@@ -268,7 +285,7 @@ Do not implement adaptation mode until recovery mode is stable.
 
 ⸻
 
-5. Interaction protocol
+6. Interaction protocol
 
 Recovery mode default
 
@@ -286,7 +303,7 @@ Do not use “all-vs-all every round” in v1.
 
 ⸻
 
-6. Initialization
+7. Initialization
 
 Beliefs
 
@@ -312,7 +329,7 @@ Also support a “symmetric init” flag for failure-case experiments.
 
 ⸻
 
-7. Step sizes
+8. Step sizes
 
 Use two counters:
 	•	round counter t for belief-scale bookkeeping
@@ -324,13 +341,17 @@ Recommended defaults:
 
 If beliefs are updated without explicit damping, still log \alpha_t as the effective fast-scale step.
 
-Prototype updates occur every `prototype_update_every` rounds (slow counter **m** advances only on those steps).
+Prototype updates occur every **`Q` interaction events** (`prototype_update_every` after `validate()`; see §19). When `interaction_pairs_min = interaction_pairs_max = 1`, this matches one interaction per environment round, i.e. every `Q` rounds. Slow counter **m** advances only on those steps.
 
 ⸻
 
 ### Two-timescale update contract (critical implementation detail)
 
-The ESL algorithm follows a **two-timescale** stochastic-approximation structure:
+The ESL algorithm follows a **two-timescale** stochastic-approximation structure. **Formal contract:**
+
+- **Fast process:** pairwise beliefs $B$ are updated on every step where learning is enabled and an observation occurs (`W_{ij,t}=1$), using likelihoods at **current** $\Theta_t$.
+- **Slow process:** prototype parameters $\Theta$ are updated **only** every $M$ environment steps (batched SGD), not every step.
+- **Constraint:** prototype dynamics must be **strictly slower** than belief dynamics in aggregate (typically $M\ge 2$, tuned step sizes). This separation supports the standard SA / ODE tracking interpretation of the slow iterate.
 
 **Fast timescale (beliefs)**  
 - Updated on **every** interaction step in which a signal is observed (`W_{ij,t}=1`).  
@@ -355,7 +376,7 @@ The ESL algorithm follows a **two-timescale** stochastic-approximation structure
 
 Prototype parameter updates run **only** in a separate scheduled block (below).
 
-**Batch record vs. §4.9.** The stochastic objective uses weights `b_{i\to j,t}` at the **start** of step `t` for that pair (before the Bayes update from `s_{ij,t}`). Implementation must snapshot `b_{i\to j,t}` **before** applying Bayes for this signal, perform `B_t\to B_{t+1}`, then append the buffer with that frozen `b_{i\to j,t}` so it matches §4.9–§4.11.
+**Batch record vs. §5.9.** The stochastic objective uses weights `b_{i\to j,t}` at the **start** of step `t` for that pair (before the Bayes update from `s_{ij,t}`). Implementation must snapshot `b_{i\to j,t}` **before** applying Bayes for this signal, perform `B_t\to B_{t+1}`, then append the buffer with that frozen `b_{i\to j,t}` so it matches §5.9–§5.11.
 
 **2. Prototype update schedule**
 
@@ -383,13 +404,15 @@ gamma_m = prototype_lr_scale * (m+1)**(-0.9)
 When applying a prototype step:
 
 - Treat stored `b_{i\to j}` entries in the batch as **constants**.  
-- Accumulate `\sum W_{ij}\,b_{i\to j}[k]\,(e_s-\mathrm{softmax}(\theta_k))` over the batch at **current** `\Theta`, then **divide by the batch length** `|B|` (number of environment steps in the buffer) and apply `\Theta \leftarrow \Theta + \gamma_m \cdot (\mathrm{mean})`, matching §4.11. Equivalently: `\Theta \leftarrow \Theta + (\gamma_m/|B|)\cdot(\mathrm{sum})`.
+- Accumulate `\sum W_{ij}\,b_{i\to j}[k]\,(e_s-\mathrm{softmax}(\theta_k))` over the batch at **current** `\Theta`, then **divide by the batch length** `|B|` (number of **interaction steps** in the buffer, i.e. environment rounds accumulated—not the count of $W_{ij}=1$ rows) and apply `\Theta \leftarrow \Theta + \gamma_m \cdot (\mathrm{mean})`, matching §5.11. Equivalently: `\Theta \leftarrow \Theta + (\gamma_m/|B|)\cdot(\mathrm{sum})`.
+
+**IMPORTANT:** Unobserved steps (`W_{ij}=0`) contribute **zero** to the gradient numerator but **still increment** $|B|$ in the denominator. This matches two-timescale stochastic-approximation scaling under sparse observability.
 
 This approximates gradients of the inner objective at `B^\star(\Theta)` in spirit.
 
 ⸻
 
-8. Required modules
+9. Required modules
 
 config.py
 
@@ -425,7 +448,7 @@ Belief trajectories, prototype trajectories, recovery plots.
 
 ⸻
 
-9. Required outputs
+10. Required outputs
 
 For every run save:
 	•	config file
@@ -440,7 +463,7 @@ All outputs must be organized by timestamped run folder.
 
 ⸻
 
-10. Required metrics
+11. Required metrics
 
 **Primary recovery metric (MVP):** **matched cross-entropy** — after Hungarian matching of learned prototypes to true behavioral types, sum (or report) cross-entropy between each true type’s action distribution and the matched prototype’s $\mathrm{softmax}(\theta_k)$ (with clipped $q$ inside the CE formula for numerical safety, as in evaluation code).
 
@@ -453,7 +476,7 @@ Recovery metrics (exported under the **canonical field names** below)
 Dynamics metrics (canonical names)
 	•	`prototype_update_norm` — norm of the applied prototype parameter step $\|\gamma_m \bar g\|$ (per scheduled update; logged on the round where an update occurs)
 	•	`belief_change_norm` — L1 total variation $\sum_{i,j,k}|b_{i\to j,t+1}[k]-b_{i\to j,t}[k]|$ over the stored belief tensor after vs. before the step (diagonal entries remain zero)
-	•	`batch_log_likelihood` — weighted log-likelihood term for the observed step (clamped log, §4.6)
+	•	`batch_log_likelihood` — weighted log-likelihood term for the observed step (clamped log, §5.6)
 
 Payoff metrics (summary JSON)
 	•	`mean_payoff_per_agent_per_round`
@@ -463,7 +486,7 @@ Payoff metrics (summary JSON)
 
 ⸻
 
-11. Mandatory evaluation rule
+12. Mandatory evaluation rule
 
 All prototype comparisons must be computed up to permutation.
 
@@ -475,7 +498,7 @@ This is non-optional.
 
 ⸻
 
-12. Mandatory unit tests
+13. Mandatory unit tests
 
 Implement at least:
 	1.	softmax(theta).sum() == 1
@@ -488,7 +511,7 @@ Implement at least:
 
 ⸻
 
-13. Stopping rule
+14. Stopping rule
 
 For MVP use fixed horizon only.
 
@@ -500,7 +523,7 @@ But do not rely on early stopping in v1 experiments.
 
 ⸻
 
-14. Required first experiments
+15. Required first experiments
 
 Experiment 1 — Symmetry preservation
 	•	symmetric initialization
@@ -522,7 +545,7 @@ Experiment 4 — Strategic adaptation
 
 ⸻
 
-15. Guardrails
+16. Guardrails
 
 Do not add
 	•	FCM
@@ -540,17 +563,17 @@ Do enforce
 
 ⸻
 
-16. Cursor implementation brief
+17. Cursor implementation brief
 
-Build a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but implement recovery mode first. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then **Euclidean projection** onto $\Delta_K^\delta$ (§4.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics.
+Build a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but implement recovery mode first. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then **Euclidean projection** onto $\Delta_K^\delta$ (§5.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics.
 
 ⸻
 
-17. Implementation clarifications (MVP; keep aligned with code)
+18. Implementation clarifications (MVP; keep aligned with code)
 
 These statements are **normative for the reference implementation** and avoid ambiguity for tests and reviewers.
 
-1. **Simplex constraint:** After Bayes, beliefs are mapped by **exact Euclidean projection** $\Pi_{\Delta_K^\delta}$ onto $\{b:\sum_k b_k=1,\,b_k\ge\delta\}$ (§4.8). Implementation: `esl/utils/simplex.py` + `esl/beliefs.py`.
+1. **Simplex constraint:** After Bayes, beliefs are mapped by **exact Euclidean projection** $\Pi_{\Delta_K^\delta}$ onto $\{b:\sum_k b_k=1,\,b_k\ge\delta\}$ (§5.8). Implementation: `esl/utils/simplex.py` + `esl/beliefs.py`.
 
 2. **Mode B:** MVP adaptation uses **all** logit best-response agents unless extended. Mixed fixed/BR populations are an **optional** implementation note, not a core requirement.
 
@@ -558,4 +581,53 @@ These statements are **normative for the reference implementation** and avoid am
 
 4. **Likelihood clamping:** **Unclipped** softmax probabilities feed **Bayes** updates. **$\varepsilon$-clamping applies only** when computing $\log L_k$ for the **weighted log-likelihood** telemetry / objective logging, not for the posterior likelihood ratio.
 
-5. **Outputs:** Use **one canonical naming scheme** for metrics across JSON, CSV, and plotting readers (§10). Avoid duplicate aliases in the same artifact.
+5. **Outputs:** Use **one canonical naming scheme** for metrics across JSON, CSV, and plotting readers (§11). Avoid duplicate aliases in the same artifact.
+
+⸻
+
+## 19. Addendum — Target protocol, predictive policies, synthetic evaluation, SA language (v2)
+
+This addendum aligns the **product spec** with the paper-style target. The **reference code** may implement a strict subset; see **`ALGORITHM_CURRENT.md`** vs **`ALGORITHM_TARGET.md`**.
+
+### 19.1 Target interaction protocol
+
+Each **environment round** \(t\):
+
+1. Sample \(L_t \in \{L_{\min},\ldots,L_{\max}\}\) (degenerate case: constant \(L_t\) without extra RNG if required for reproducibility).
+2. Sample \(\mathcal{E}_t \subset \{(i,j): i\neq j\}\) with \(|\mathcal{E}_t|=L_t\) **without replacement**.
+3. For each \((i,j)\in\mathcal{E}_t\) **in order**: act, observe \(W_{ij,t}\), snapshot belief, Bayes + projection, append slow-batch record, increment global interaction counter \(n\).
+4. **Prototype update** after every **\(Q\)** interaction events (not “every \(M\) rounds” when \(L_t\) varies). Config: `prototype_update_every` holds \(Q\) after `validate()`; optional `prototype_update_every_interactions` overwrites it.
+
+If **`force_ordered_pair`** is set (debug): \(L_t=1\) and \(\mathcal{E}_t\) is that pair only; **`interaction_pairs_min` / `max` are ignored** for that run.
+
+### 19.2 Belief-dependent policy (adaptation mode)
+
+Predictive opponent distribution:
+\[
+\hat\pi_{j\mid i,t}(a_j)=\sum_{k=1}^K b_{i\to j,t}[k]\,\pi_k(a_j\mid\theta_k),
+\quad \pi_k=\mathrm{softmax}(\theta_k).
+\]
+Expected utility for candidate \(a_i\): \(\sum_{a_j}\hat\pi_{j\mid i,t}(a_j)\,u_i(a_i,a_j)\). Logit best response:
+\[
+\pi_i(a_i\mid b,\Theta)\propto \exp\{\lambda\, U_i(a_i)\}.
+\]
+**Implementation:** `esl.trainer.marginal_opponent_probs` implements \(\hat\pi\) as \(b_{i\to j}^\top \sigma(\Theta)\).
+
+### 19.3 Synthetic population and evaluation truth (never for learning)
+
+For **simulation and metrics only**:
+\[
+z_i\sim\mathrm{Categorical}(\rho),\qquad \phi_i\sim\mathcal{D}_{z_i},\qquad \tilde\theta_i=\theta^\star_{z_i}+\phi_i.
+\]
+Actions in the simulator may draw from \(\mathrm{softmax}(\tilde\theta_i)\). **\(\Theta^\star\), \(z\), \(\phi\) are not observed** by the ESL learner and **must not** appear in `run_esl`’s learning path. Module: **`esl/synthetic_population.py`** (do **not** import from `esl.trainer`).
+
+### 19.4 Evaluation metrics (names)
+
+- **MCE (matched cross-entropy):**  
+  \(\displaystyle \mathrm{MCE}(\Theta,\Theta^\star)=\min_{\sigma\in S_K}\frac{1}{K}\sum_{k=1}^K \mathrm{CE}\bigl(\pi^\star_k \,\|\, \mathrm{softmax}(\theta_{\sigma(k)})\bigr)\)  
+  (implementation: Hungarian on CE cost matrix; see `esl.metrics.match_prototypes_to_types` / `mce_value`).
+- **Beliefs vs true type \(z_j\)** (evaluation): cross-entropy \(\mathrm{CE}(e_{z_j}, b_{i\to j})\), KL\((e_{z_j}\| b_{i\to j})\), argmax accuracy (Hungarian-aligned where used).
+
+### 19.5 Theoretical interpretation (wording)
+
+The system is a **two-timescale stochastic approximation** with **Markovian** fast dynamics (beliefs). **Limiting** behavior should be described, in general, via **invariant measures** of the fast process and an **averaged drift** / **differential inclusion** for the slow parameter; a **mean-field ODE** is appropriate **only** under **stronger** mixing or uniqueness assumptions—not as the universal story.

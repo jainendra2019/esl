@@ -62,6 +62,9 @@ def match_prototypes_to_types(
 ) -> tuple[np.ndarray, float]:
     """
     Permutation-invariant matching: returns (perm, total_ce) where perm[t] is learned index for true t.
+
+    The minimized objective is **K × MCE** in the paper sense:
+    MCE = (1/K) * total_ce with CE(p* || softmax(θ)) per matched pair.
     method: 'hungarian', 'brute', or 'auto' (brute if K<=4 else hungarian).
     """
     cost = pairwise_assignment_cost(true_probs, learned_logits)
@@ -73,6 +76,80 @@ def match_prototypes_to_types(
     if k <= 4:
         return brute_force_min_permutation(cost)
     return hungarian_min_cost_permutation(cost)
+
+
+def mce_value(
+    true_probs: np.ndarray,
+    learned_logits: np.ndarray,
+    *,
+    method: str = "auto",
+) -> float:
+    """
+    **Matched cross-entropy (MCE)** in the paper normalization:
+    min_{σ ∈ S_K} (1/K) Σ_k CE(p*_k || softmax(θ_{σ(k)})).
+    """
+    _, total = match_prototypes_to_types(true_probs, learned_logits, method=method)
+    k = true_probs.shape[0]
+    return float(total / max(k, 1))
+
+
+def belief_cross_entropy_vs_type(
+    b_ij: np.ndarray,
+    true_type_j: int,
+    k_proto: int,
+    eps: float = 1e-12,
+) -> float:
+    """
+    CE(e_{z_j} || b_{i→j}) = −log b_{i→j}[z_j] (natural units; clamp for stability).
+
+    **Evaluation only:** uses discrete true type index z_j, not learned prototypes.
+    """
+    b = np.asarray(b_ij, dtype=np.float64).ravel()
+    if b.shape[0] != int(k_proto):
+        raise ValueError("b_ij length must equal k_proto")
+    z = int(true_type_j)
+    if not (0 <= z < k_proto):
+        raise ValueError("true_type_j out of range")
+    b = np.clip(b, eps, 1.0)
+    b = b / b.sum()
+    return float(-np.log(b[z]))
+
+
+def belief_kl_true_vs_belief(
+    b_ij: np.ndarray,
+    true_type_j: int,
+    k_proto: int,
+    eps: float = 1e-12,
+) -> float:
+    """
+    KL(e_{z_j} || b_{i→j}). **Evaluation only.**
+    """
+    p = np.zeros(int(k_proto), dtype=np.float64)
+    p[int(true_type_j)] = 1.0
+    q = np.asarray(b_ij, dtype=np.float64).ravel()
+    if q.shape[0] != int(k_proto):
+        raise ValueError("b_ij length must equal k_proto")
+    q = np.clip(q, eps, 1.0)
+    q = q / q.sum()
+    return kl_divergence(p, q, eps=eps)
+
+
+def mean_belief_ce_vs_types(
+    beliefs: np.ndarray,
+    true_types: np.ndarray,
+    num_agents: int,
+    k_proto: int,
+) -> float:
+    """Mean CE(e_{z_j} || b_{i→j}) over ordered pairs i≠j."""
+    s = 0.0
+    c = 0
+    for i in range(num_agents):
+        for j in range(num_agents):
+            if i == j:
+                continue
+            s += belief_cross_entropy_vs_type(beliefs[i, j], int(true_types[j]), k_proto)
+            c += 1
+    return float(s / max(c, 1))
 
 
 def belief_entropy(beliefs: np.ndarray, num_agents: int, k_proto: int) -> float:

@@ -462,7 +462,7 @@ def main() -> None:
     p.add_argument(
         "--until-converged",
         action="store_true",
-        help="stop early when convergence criteria hold; --rounds is T_max (see ALGORITHM.md)",
+        help="stop early when convergence criteria hold; --rounds is T_max (see ALGORITHM_CURRENT.md)",
     )
     p.add_argument("--conv-window", type=int, default=50, dest="conv_window")
     p.add_argument("--conv-eps-h", type=float, default=0.1, dest="conv_eps_h")
