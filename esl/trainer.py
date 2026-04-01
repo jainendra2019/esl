@@ -1,6 +1,6 @@
 """Training loop: recovery and adaptation modes, batching, logging hooks.
 
-Implementation-level pseudocode (faithful to this file) lives in **ALGORITHM_CURRENT.md** at repo root (**ALGORITHM.md** indexes CURRENT vs TARGET).
+Implementation narrative and pseudocode (faithful to this file) live in **ALGORITHM.md** at repo root.
 """
 
 from __future__ import annotations
@@ -295,13 +295,13 @@ def run_esl(
     ``force_ordered_pair`` is unset; otherwise uses that single pair. Interactions run
     sequentially; signal ``s = a_j`` per pair. Prototype SGD runs every ``Q`` interaction
     events (``prototype_Q()``), not once per round. Belief / batch ordering: PRD §8 and
-    **ALGORITHM_CURRENT.md**.
+    **ALGORITHM.md** (*Current implementation*).
 
     If ``learning_frozen``: no Bayes updates and no batch appends (beliefs stay at init).
 
     If ``stop_on_convergence``: after each round (once at least ``convergence_window_w`` rounds
     exist), the trainer may break early when entropy, matched separation, and windowed stability
-    norms all satisfy configured thresholds; ``num_rounds`` is a hard cap. See **ALGORITHM_CURRENT.md**.
+    norms all satisfy configured thresholds; ``num_rounds`` is a hard cap. See **ALGORITHM.md**.
     """
     cfg.validate()
     rng = cfg.make_rng()

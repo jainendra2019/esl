@@ -108,7 +108,7 @@ def test_val4_sparse_observability_degrades_recovery():
 
 
 @pytest.mark.validation
-def test_val5_two_timescale_prototype_schedule():
+def test_val5_prototype_updates_on_fixed_schedule():
     M = 5
     T = 103
     cfg = ESLConfig(

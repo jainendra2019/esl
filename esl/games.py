@@ -80,7 +80,7 @@ def true_type_distributions(num_types: int) -> np.ndarray:
     When K exceeds the number of registered base policies (v1: AC and AD only),
     rows **cycle** through those templates (``k % n_behavioral``). That is an
     **implementation convenience** for overparameterized / edge tests—not a
-    theoretical restriction; see **ALGORITHM_CURRENT.md** (“Implementation note: K larger
+    theoretical restriction; see **ALGORITHM.md** (*Current implementation* — “Implementation note: K larger
     than base behavioral templates”). Trainer hidden policies use the same
     modulo when building ``HiddenPolicy`` from a type index.
     """

@@ -1,6 +1,6 @@
 # ESL — Epistemic Social Learning
 
-Code for **multi-agent belief dynamics** and **slow prototype (latent-type) learning** in repeated 2-action games. ESL is a **feedback-coupled** system: observations depend on actions driven by **current** beliefs and (in adaptation mode) best responses—so data are **endogenous**, not i.i.d. latent-variable samples. Beliefs update every environmental step; prototype logits update on a slower schedule with **averaged batch gradients** over full interaction batches (two-timescale stochastic approximation; see **PRD.md** §3, §5, §8 and **ALGORITHM.md** / **ALGORITHM_CURRENT.md**).
+Code for **multi-agent belief dynamics** and **slow prototype (latent-type) learning** in repeated 2-action games. ESL is a **feedback-coupled** system: observations depend on actions driven by **current** beliefs and (in adaptation mode) best responses—so data are **endogenous**, not i.i.d. latent-variable samples. Beliefs update every environmental step; prototype logits update on a slower schedule with **averaged batch gradients** over full interaction batches (two-timescale stochastic approximation; see **PRD.md** §3, §5, §8 and **ALGORITHM.md**).
 
 **Repository:** [github.com/jainendra2019/esl](https://github.com/jainendra2019/esl)
 
@@ -130,8 +130,7 @@ python3 -m esl.plot_esl_mechanism \
 ## Documentation
 
 - **`PRD.md`** — product / algorithm requirements used to align implementation and tests.
-- **`ALGORITHM.md`** — index to **ALGORITHM_CURRENT.md** (what the code does) and **ALGORITHM_TARGET.md** (theory-aligned target).
-- **`ALGORITHM_CURRENT.md`** — implementation-faithful loop (variable \(L_t\), \(Q\), batch/`w`, gradients, logging).
+- **`ALGORITHM.md`** — single reference: current implementation, theory-aligned target, and Cormen-style pseudocode.
 - **`esl/synthetic_population.py`** — optional simulator ground truth (not used by `run_esl`).
 
 ## License

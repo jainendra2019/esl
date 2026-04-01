@@ -28,14 +28,14 @@
 | V9 | `test_v9_belief_likelihood_cooperate_shifts_posterior` | Observe C ⇒ mass on C-like prototype up |
 | V10 | `test_v10_single_prototype_step_increases_likelihood_of_signal` | SGD step increases L(signal) |
 | V11 | `test_v11_deterministic_seed_reproducibility` | Same seed ⇒ same logits + summary |
-| V12 | `test_v12_batch_appends_w_zero_and_dilutes_mean_gradient` | `w=0` rows add no grad but count in mean denominator (**ALGORITHM_CURRENT.md**) |
+| V12 | `test_v12_batch_appends_w_zero_and_dilutes_mean_gradient` | `w=0` rows add no grad but count in mean denominator (**ALGORITHM.md**) |
 | V13 | `test_v13_weighted_gradient_equals_w_times_b_times_es_minus_p` | Batch grad = `w · b_snap[k] · (e_s − p_k)` per prototype |
 | V14 | `test_v14_true_type_distributions_cycles_behaviors_when_k_gt_2` | `true_type_distributions(K)` cycles AC/AD when K>2 |
 | V15 | `test_v15_recovery_mode_never_calls_act_agent` | Recovery path never invokes `act_agent` |
 | V16 | `test_v16_adaptation_mode_calls_act_agent` | Adaptation path invokes `act_agent` each pair play |
 | HT1 | `test_hand_trace_*` in `test_hand_trace_always_defect.py` | Defect + **Cooperate mirror**: fixed θ; beliefs vs isolated Bayes; entropy ↓; P(C) rises under s=0 batch |
 | — | `python -m esl.hand_trace` / `--cooperate` | CSV + prototype update log for Defect or Cooperate stream |
-| — | **`ALGORITHM_CURRENT.md`** | Implementation-faithful pseudocode; **ALGORITHM.md** is the index; keep in sync with `trainer.py` and PRD §3 / §5 / §8 / §19 |
+| — | **`ALGORITHM.md`** | Single doc: current implementation, theory target, pseudocode; keep in sync with `trainer.py` and PRD §3 / §5 / §8 / §19 |
 | T-align | (reviewer checklist) | After PRD/ALGORITHM edits, grep `PRD §` / `§5.` in `esl/` + `tests/` for stale section numbers; run `pytest -q --runslow` |
 
 ## 2. Validation (`@pytest.mark.validation`)
@@ -46,7 +46,7 @@
 | VAL2 | `test_val2_asymmetry_induces_specialization` | Noise init ⇒ separation + lower CE |
 | VAL3 | `test_val3_two_type_recovery_short_horizon_multi_seed` | Same as above on **seeds 12, 42, 99** (parametrize) |
 | VAL4 | `test_val4_sparse_observability_degrades_recovery` | Lower p_obs ⇒ worse CE (aggregated) |
-| VAL5 | `test_val5_two_timescale_prototype_schedule` | Prototype updates only on schedule + count |
+| VAL5 | `test_val5_prototype_updates_on_fixed_schedule` | Prototype updates only on schedule + count (one interaction/round default) |
 | VAL6 | `test_val6_batch_log_likelihood_trend` | Later rounds: higher mean batch LL |
 | VAL7 | `test_val7_adaptation_learning_beats_frozen_baseline` | ESL learning > learning_frozen payoff |
 | VAL8 | `test_val8_entropy_falls_before_payoff_rises` | Early entropy > late; payoff non-decreasing trend |
