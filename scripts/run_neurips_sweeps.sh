@@ -2,6 +2,8 @@
 # Full NeurIPS sweep grid (long). Requires active venv with esl installed.
 # Usage: ./scripts/run_neurips_sweeps.sh
 # Override: NEURIPS_SEED=43 NEURIPS_OUT=runs/neurips ./scripts/run_neurips_sweeps.sh
+# Quick structural demo (tiny rounds, not publication numbers):
+#   NEURIPS_SMOKE=1 ./scripts/run_neurips_sweeps.sh
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,7 +11,12 @@ cd "$ROOT"
 
 SEED="${NEURIPS_SEED:-42}"
 OUT="${NEURIPS_OUT:-runs/neurips}"
-RUN=(python3 -m esl.experiments run --seed "$SEED" --out-root "$OUT")
+SMOKE=()
+if [[ "${NEURIPS_SMOKE:-0}" == "1" ]]; then
+  SMOKE=(--smoke)
+  echo "NEURIPS_SMOKE=1: using --smoke (few rounds per run; for full paper runs omit NEURIPS_SMOKE)"
+fi
+RUN=(python3 -m esl.experiments run --seed "$SEED" --out-root "$OUT" "${SMOKE[@]}")
 
 echo "==> Sparse p_obs"
 for p in 1.0 0.5 0.2; do

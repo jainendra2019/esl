@@ -41,7 +41,10 @@ def run_named_preset(
     }
     if manifest["target_interaction_budget"] is None and preset == "recovery_short_horizon":
         vs = variant.strip()
-        manifest["target_interaction_budget"] = 30 if smoke else (int(vs) if vs.isdigit() else None)
+        if vs.isdigit():
+            manifest["target_interaction_budget"] = int(vs)
+        elif smoke:
+            manifest["target_interaction_budget"] = 30
     if extra_manifest:
         manifest.update(extra_manifest)
     write_run_manifest(run_dir / "run_manifest.json", manifest)
@@ -98,7 +101,8 @@ def _config_for_cli_preset(
             cfg = neurips_presets.recovery_short_horizon_cfg(
                 interaction_budget=30, interactions_per_round=10, seed=seed
             )
-            return cfg, "budget_30_smoke"
+            # Unique path per requested paper budget even though smoke uses 30 interactions.
+            return cfg, f"budget_{budget}_smoke"
         cfg = neurips_presets.recovery_short_horizon_cfg(
             interaction_budget=budget, interactions_per_round=10, seed=seed
         )
