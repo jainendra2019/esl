@@ -19,7 +19,7 @@ fi
 RUN=(python3 -m esl.experiments run --seed "$SEED" --out-root "$OUT" "${SMOKE[@]}")
 
 echo "==> Sparse p_obs"
-for p in 1.0 0.5 0.2; do
+for p in 1.0 0.5 0.3 0.2; do
   "${RUN[@]}" --preset recovery_sparse_obs --variant "$p"
 done
 

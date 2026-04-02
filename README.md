@@ -176,6 +176,16 @@ python3 -m esl.experiments run --preset recovery_fixed_prototype_baseline --seed
 
 **Sweep helper** (sequential full runs — long): see **`scripts/run_neurips_sweeps.sh`**.
 
+**Small sparse sweep** (\(p_{\mathrm{obs}}\in\{1.0,0.5,0.3,0.2\}\), same flagship geometry) with **final matched CE vs \(p_{\mathrm{obs}}\)** figure:
+
+```bash
+python3 -m esl.experiments sparse-pobs-sweep --rounds 3000 --out-root runs/sparse_pobs_sweep
+# writes runs/sparse_pobs_summary.csv + runs/final_ce_vs_p_obs.png
+python3 -m esl.experiments sparse-pobs-sweep --plot-only --out-root runs/sparse_pobs_sweep  # refresh PNG only
+```
+
+Use **`--rounds 10000`** for paper-length curves. *Rounds-to-convergence vs \(p_{\mathrm{obs}}\)* is not plotted here (runs use fixed horizons unless you enable `stop_on_convergence` in a forked driver).
+
 **Aggregate CSV** (schema v1) over completed runs under a root:
 
 ```bash

@@ -176,6 +176,29 @@ def main(argv: list[str] | None = None) -> None:
         default=Path("runs/neurips/_aggregates/summary_all_runs.csv"),
     )
 
+    ps = sub.add_parser(
+        "sparse-pobs-sweep",
+        help="p_obs in {1.0,0.5,0.3,0.2} (flagship geometry) + final CE vs p_obs plot",
+    )
+    ps.add_argument(
+        "--out-root",
+        type=Path,
+        default=Path("runs/sparse_pobs_sweep"),
+    )
+    ps.add_argument(
+        "--rounds",
+        type=int,
+        default=3000,
+        help="environment rounds per point (use 10000 for paper-length)",
+    )
+    ps.add_argument("--seed", type=int, default=42)
+    ps.add_argument("--no-plot", action="store_true")
+    ps.add_argument(
+        "--plot-only",
+        action="store_true",
+        help="regenerate PNG from existing sparse_pobs_summary.csv",
+    )
+
     args = p.parse_args(argv)
 
     if args.cmd == "list-presets":
@@ -196,4 +219,22 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "aggregate":
         out = write_aggregate_csv(args.root, args.output)
         print(f"Wrote: {out}")
+        return
+    if args.cmd == "sparse-pobs-sweep":
+        from esl.experiments.sparse_pobs_sweep import (
+            main_sparse_pobs,
+        )
+
+        main_sparse_pobs(
+            [
+                "--out-root",
+                str(args.out_root),
+                "--rounds",
+                str(args.rounds),
+                "--seed",
+                str(args.seed),
+            ]
+            + (["--no-plot"] if args.no_plot else [])
+            + (["--plot-only"] if args.plot_only else [])
+        )
         return
