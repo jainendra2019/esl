@@ -1,0 +1,2 @@
+condition,seed,round,prototype_update_idx,prototype_update_norm,theta_0_a0,theta_0_a1,theta_1_a0,theta_1_a1,p_0_cooperate,p_0_defect,p_1_cooperate,p_1_defect
+freeze_proto_baseline,42,0,-1,0.0,0.01,-0.01,-0.01,0.01,0.5049998333399998,0.49500016666000024,0.49500016666000024,0.5049998333399998

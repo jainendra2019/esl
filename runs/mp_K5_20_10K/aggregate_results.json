@@ -1,0 +1,18 @@
+{
+  "K5": {
+    "K": 5,
+    "seeds": 2,
+    "final_mce_mean": 0.5885749269977221,
+    "final_mce_std": 0.0013510479113073453,
+    "final_mce_ci95": 0.0018724568739949563,
+    "final_belief_accuracy_mean": 0.6078947368421053,
+    "final_belief_accuracy_std": 0.0,
+    "final_belief_accuracy_ci95": 0.0,
+    "final_belief_ce_mean": 2.5350306902223307,
+    "final_belief_ce_std": 0.35384787306684085,
+    "final_belief_ce_ci95": 0.49040813188583976,
+    "avg_return_mean": 0.0,
+    "avg_return_std": 0.0,
+    "avg_return_ci95": 0.0
+  }
+}

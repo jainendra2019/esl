@@ -1,0 +1,27 @@
+{
+  "condition": "main",
+  "seed": 42,
+  "num_rounds": 400,
+  "num_rounds_executed": 400,
+  "stopped_on_convergence": false,
+  "convergence_round": null,
+  "prototype_update_every": 5,
+  "prototype_update_count": 80,
+  "learning_frozen": false,
+  "freeze_prototype_parameters": false,
+  "final_matched_cross_entropy": 1.3404571737015951,
+  "final_belief_argmax_accuracy": 1.0,
+  "final_avg_belief_entropy": 0.6914431300039314,
+  "final_p_0_cooperate": 0.5311177593732579,
+  "final_p_1_cooperate": 0.5581912990277805,
+  "prototype_separation_abs": 0.027073539654522638,
+  "true_types": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1
+  ],
+  "obs_prob": 0.5
+}

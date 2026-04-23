@@ -1,0 +1,36 @@
+{
+  "experiment": "prototype_recovery_sweep",
+  "game_type": "stag_hunt",
+  "observability": "full",
+  "p_obs": 1.0,
+  "num_agents": 20,
+  "prototype_update_every_M": 7,
+  "interaction_pairs_L_t": [
+    5,
+    15
+  ],
+  "population_noise_sigma": 0.1,
+  "prototype_lr_scale": 22.0,
+  "num_rounds": 10000,
+  "num_seeds": 2,
+  "experiments": {
+    "K4": [
+      [
+        0.95,
+        0.05
+      ],
+      [
+        0.75,
+        0.25
+      ],
+      [
+        0.25,
+        0.75
+      ],
+      [
+        0.05,
+        0.95
+      ]
+    ]
+  }
+}

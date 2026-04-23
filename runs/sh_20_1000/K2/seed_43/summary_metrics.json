@@ -1,0 +1,52 @@
+{
+  "experiment": "prototype_recovery_sweep",
+  "K": 2,
+  "seed": 43,
+  "num_rounds": 1000,
+  "num_agents": 20,
+  "prototype_update_every": 7,
+  "population_noise_sigma": 0.1,
+  "ground_truth_probs": [
+    [
+      0.95,
+      0.05
+    ],
+    [
+      0.05,
+      0.95
+    ]
+  ],
+  "final_mce": 0.2070539219339523,
+  "final_belief_accuracy": 0.9973684210526316,
+  "final_belief_ce": 3.7911957855721927,
+  "avg_return": 2.454981992797119,
+  "learned_logits": [
+    [
+      -1.227334746394281,
+      1.1698329963817158
+    ],
+    [
+      1.1935450852873282,
+      -1.196286125515015
+    ]
+  ],
+  "learned_probs": [
+    [
+      0.08338892539296221,
+      0.9166110746070378
+    ],
+    [
+      0.9160485885217443,
+      0.08395141147825563
+    ]
+  ],
+  "permutation_true_to_learned": [
+    1,
+    0
+  ],
+  "prototype_update_count": 143,
+  "agents_per_type": {
+    "0": 10,
+    "1": 10
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "experiment": "prototype_recovery_sweep",
+  "game_type": "matching_pennies",
+  "observability": "full",
+  "p_obs": 1.0,
+  "num_agents": 20,
+  "prototype_update_every_M": 7,
+  "interaction_pairs_L_t": [
+    5,
+    15
+  ],
+  "population_noise_sigma": 0.1,
+  "prototype_lr_scale": 22.0,
+  "num_rounds": 500,
+  "num_seeds": 2,
+  "experiments": {
+    "K2": [
+      [
+        0.85,
+        0.15
+      ],
+      [
+        0.15,
+        0.85
+      ]
+    ],
+    "K3": [
+      [
+        0.85,
+        0.15
+      ],
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.15,
+        0.85
+      ]
+    ],
+    "K5": [
+      [
+        0.85,
+        0.15
+      ],
+      [
+        0.65,
+        0.35
+      ],
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.35,
+        0.65
+      ],
+      [
+        0.15,
+        0.85
+      ]
+    ]
+  }
+}

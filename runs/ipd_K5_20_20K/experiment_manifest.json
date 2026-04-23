@@ -1,0 +1,37 @@
+{
+  "experiment": "prototype_recovery_sweep",
+  "num_agents": 20,
+  "prototype_update_every_M": 7,
+  "interaction_pairs_L_t": [
+    5,
+    15
+  ],
+  "population_noise_sigma": 0.1,
+  "prototype_lr_scale": 22.0,
+  "num_rounds": 20000,
+  "num_seeds": 2,
+  "experiments": {
+    "K5": [
+      [
+        0.98,
+        0.02
+      ],
+      [
+        0.75,
+        0.25
+      ],
+      [
+        0.6,
+        0.4
+      ],
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.25,
+        0.75
+      ]
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "K4": {
+    "K": 4,
+    "seeds": 2,
+    "final_mce_mean": 0.4281581898241748,
+    "final_mce_std": 0.002920410711380083,
+    "final_mce_ci95": 0.0040474827470187045,
+    "final_belief_accuracy_mean": 0.6894736842105262,
+    "final_belief_accuracy_std": 0.02977291710259149,
+    "final_belief_accuracy_ci95": 0.041263157894736856,
+    "final_belief_ce_mean": 3.0174763311149184,
+    "final_belief_ce_std": 0.462826766789976,
+    "final_belief_ce_ci95": 0.6414451728112001,
+    "avg_return_mean": 2.474937792148063,
+    "avg_return_std": 0.004489168077308028,
+    "avg_return_ci95": 0.0062216695311273365
+  }
+}
