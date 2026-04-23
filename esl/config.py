@@ -34,6 +34,13 @@ class ESLConfig:
     # If set, length must equal num_agents; overrides cyclic true-type assignment (debug / hand traces).
     force_agent_true_types: list[int] | None = None
 
+    # Ground-truth prototype probability vectors, shape (K, A). When set, agents use stochastic
+    # softmax policies drawn from these prototypes (with optional noise). Overrides the built-in
+    # AlwaysCooperate / AlwaysDefect registry. Each row must be a valid probability distribution.
+    ground_truth_probs: list[list[float]] | None = None
+    # Per-agent Gaussian noise (σ) on logits: θ̃_i = θ★_{z_i} + N(0, σ²). Default 0 = no noise.
+    population_noise_sigma: float = 0.0
+
     num_agents: int = 4
     num_prototypes: int = 2
     num_actions: int = 2
@@ -92,14 +99,28 @@ class ESLConfig:
 
     adaptation_lambda: float = 2.0
 
-    pd_t: float = 5.0
-    pd_r: float = 3.0
-    pd_p: float = 1.0
-    pd_s: float = 0.0
+    # Stage game selection: 'ipd', 'stag_hunt', 'matching_pennies'
+    game_type: str = "ipd"
+
+    # Prisoner's Dilemma payoffs (T > R > P > S, 2R > T+S)
+    pd_t: float = 5.0  # Temptation
+    pd_r: float = 3.0  # Reward (mutual cooperate)
+    pd_p: float = 1.0  # Punishment (mutual defect)
+    pd_s: float = 0.0  # Sucker
+
+    # Stag Hunt payoffs (A > B > C)
+    sh_a: float = 4.0  # Mutual stag (payoff-dominant NE)
+    sh_b: float = 3.0  # Hare (risk-dominant NE)
+    sh_c: float = 0.0  # Stag alone (sucker)
+
+    # Matching Pennies payoff
+    mp_w: float = 1.0  # Win/loss magnitude
 
     def validate(self) -> None:
         if self.num_actions != 2:
             raise ValueError("v1 supports exactly 2 actions")
+        if self.game_type not in ("ipd", "stag_hunt", "matching_pennies"):
+            raise ValueError(f"Unknown game_type {self.game_type!r}; use 'ipd', 'stag_hunt', or 'matching_pennies'")
         if not (0.0 <= self.p_obs <= 1.0):
             raise ValueError("p_obs must be in [0, 1]")
         if self.delta_simplex * self.num_prototypes > 1.0:
@@ -157,6 +178,16 @@ class ESLConfig:
                     raise ValueError(f"{name} must be > 0")
             if not (0.0 <= self.convergence_epsilon_delta < 1.0):
                 raise ValueError("convergence_epsilon_delta must be in [0, 1)")
+        if self.ground_truth_probs is not None:
+            arr = np.array(self.ground_truth_probs, dtype=np.float64)
+            if arr.ndim != 2 or arr.shape[0] != self.num_prototypes or arr.shape[1] != self.num_actions:
+                raise ValueError(
+                    f"ground_truth_probs must be ({self.num_prototypes}, {self.num_actions}), got {arr.shape}"
+                )
+            if np.any(arr < 0) or np.any(np.abs(arr.sum(axis=1) - 1.0) > 1e-6):
+                raise ValueError("ground_truth_probs rows must be valid probability distributions")
+        if self.population_noise_sigma < 0:
+            raise ValueError("population_noise_sigma must be >= 0")
 
     def make_rng(self) -> np.random.Generator:
         return np.random.default_rng(self.seed)

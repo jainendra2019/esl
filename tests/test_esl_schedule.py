@@ -21,15 +21,19 @@ def test_prototype_update_every_interactions_syncs_legacy_field():
     assert cfg.prototype_Q() == 7
 
 
-def test_q_triggers_multiple_sgd_within_one_round():
-    """L_t=4 interactions, Q=2 => two prototype steps in the same env round."""
+def test_q_triggers_round_based_prototype_updates():
+    """Q=2 rounds => prototype step at round boundaries t=1 and t=3 (4 rounds total).
+
+    Paper Algorithm 1, lines 11-15: prototype update is round-based, NOT
+    interaction-based. With Q=2 and 4 rounds, (t+1)%Q==0 fires at t=1 and t=3.
+    """
     with tempfile.TemporaryDirectory() as td:
         cfg = ESLConfig(
             seed=1,
             mode="recovery",
             num_agents=4,
             num_prototypes=2,
-            num_rounds=1,
+            num_rounds=4,
             interaction_pairs_min=4,
             interaction_pairs_max=4,
             prototype_update_every=2,
@@ -37,9 +41,11 @@ def test_q_triggers_multiple_sgd_within_one_round():
         )
         cfg.validate()
         log, _, _, _, _ = run_esl(cfg, run_dir=Path(td))
-    assert len(log.prototype_update_events) == 2
-    assert all(not ev["final_flush"] for ev in log.prototype_update_events)
-    assert log.summary_rows[0]["round"] == 0
+    # Two round-based prototype steps (at t=1 and t=3), no final flush needed
+    non_flush = [ev for ev in log.prototype_update_events if not ev["final_flush"]]
+    assert len(non_flush) == 2
+    assert non_flush[0]["env_round_ended"] == 1
+    assert non_flush[1]["env_round_ended"] == 3
 
 
 def test_prototype_l2_eta_changes_update_from_baseline():

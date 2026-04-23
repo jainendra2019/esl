@@ -298,10 +298,10 @@ def run_esl(
     **Adaptation:** actions from ``act_agent`` (ESL softmax best response vs beliefs + θ).
 
     Each environment round samples ``L_t`` ordered pairs (without replacement) when
-    ``force_ordered_pair`` is unset; otherwise uses that single pair. Interactions run
-    sequentially; signal ``s = a_j`` per pair. Prototype SGD runs every ``Q`` interaction
-    events (``prototype_Q()``), not once per round. Belief / batch ordering: PRD §8 and
-    **ALGORITHM.md** (*Current implementation*).
+    ``force_ordered_pair`` is unset; otherwise uses that single pair. Interactions within
+    a round are treated as simultaneous: all signals are collected before belief updates
+    are applied at the end of the round (Paper §3). Prototype SGD runs every ``Q``
+    rounds at round boundaries (``prototype_Q()``), matching Paper Algorithm 1 lines 11-15.
 
     If ``learning_frozen``: no Bayes updates and no batch appends (beliefs stay at init).
 
@@ -315,18 +315,33 @@ def run_esl(
     run_dir.mkdir(parents=True, exist_ok=True)
     cfg.save_json(run_dir / "config.json")
 
-    pay = games.prisoners_dilemma(cfg)
-    true_type_probs = games.true_type_distributions(cfg.num_prototypes)
+    pay = games.build_game(cfg)
 
     # Assign each agent a true latent type index in 0..K-1 (cyclic if N > K)
     if cfg.force_agent_true_types is not None:
         true_types = np.array(cfg.force_agent_true_types, dtype=int)
     else:
         true_types = np.arange(cfg.num_agents, dtype=int) % cfg.num_prototypes
-    _nb = len(games.HIDDEN_POLICY_BUILDERS)
-    hidden_policies = [
-        games.build_hidden_policy(int(true_types[a]) % _nb) for a in range(cfg.num_agents)
-    ]
+
+    if cfg.ground_truth_probs is not None:
+        # Custom stochastic prototypes: convert probs → logits, add per-agent noise.
+        true_type_probs = np.array(cfg.ground_truth_probs, dtype=np.float64)
+        gt_logits = games.probs_to_logits(true_type_probs)
+        hidden_policies: list[games.HiddenPolicy] = []
+        for a in range(cfg.num_agents):
+            agent_logits = gt_logits[int(true_types[a])].copy()
+            if cfg.population_noise_sigma > 0:
+                agent_logits += cfg.population_noise_sigma * rng.standard_normal(
+                    size=agent_logits.shape
+                )
+            hidden_policies.append(games.SoftmaxLogitsPolicy(agent_logits))
+    else:
+        # Default: deterministic AC/AD registry (legacy K=2 behavior).
+        true_type_probs = games.true_type_distributions(cfg.num_prototypes)
+        _nb = len(games.HIDDEN_POLICY_BUILDERS)
+        hidden_policies = [
+            games.build_hidden_policy(int(true_types[a]) % _nb) for a in range(cfg.num_agents)
+        ]
 
     esl_mask = np.zeros(cfg.num_agents, dtype=bool)
     if cfg.mode == "adaptation":
@@ -366,6 +381,12 @@ def run_esl(
             )
             E_t = sample_ordered_pairs_without_replacement(rng, cfg.num_agents, L_t)
 
+        # ── Phase 1: Collect interactions (simultaneous round semantics) ──
+        # All pairs observe start-of-round beliefs; NO belief updates here.
+        # Paper §3: "Interactions within a round are treated as simultaneous,
+        # and all resulting observations are aggregated before belief updates
+        # are applied at the end of the round."
+        round_interactions = []
         for (i, j) in E_t:
             if cfg.mode == "recovery":
                 a_j = hidden_policies[j].act(rng, last_opponent_action=last_opp[j])
@@ -406,12 +427,16 @@ def run_esl(
 
             w = sample_observation_mask(cfg, rng)
             s = action_to_signal(a_j)
+            b_snap = belief_tensor[i, j].copy()
+            round_interactions.append((i, j, s, w, b_snap))
+
+        # ── Phase 2: Apply all belief updates simultaneously, build batch ──
+        for (i, j, s, w, b_snap) in round_interactions:
             if cfg.learning_frozen:
-                b_frozen = belief_tensor[i, j].copy()
                 batch_ll = (
                     float(
                         np.sum(
-                            b_frozen
+                            b_snap
                             * w
                             * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
                         )
@@ -420,14 +445,17 @@ def run_esl(
                     else 0.0
                 )
             else:
-                rec = observe_signal_update_belief(
-                    belief_tensor, logits, i=i, j=j, signal=s, w=w, cfg=cfg
-                )
-                batch.append(rec)
+                if w > 0:
+                    lk = likelihoods(logits, s)
+                    belief_tensor[i, j] = belief_ops.update_belief_pair(
+                        b_snap, lk, cfg.delta_simplex, cfg.bayes_denominator_eps,
+                    )
+                batch.append(BatchRecord(i=i, j=j, signal=s, w=w, b_ij=b_snap))
+                interaction_n += 1
                 batch_ll = (
                     float(
                         np.sum(
-                            rec.b_ij
+                            b_snap
                             * w
                             * softmax_log_likelihood_clamped(logits, s, cfg.log_prob_min)
                         )
@@ -435,43 +463,45 @@ def run_esl(
                     if w > 0
                     else 0.0
                 )
-                interaction_n += 1
-                if interaction_n % Q == 0 and batch:
-                    if cfg.freeze_prototype_parameters:
-                        batch.clear()
-                    else:
-                        theta_before = logits.copy()
-                        m_step = prototype_step_m
-                        logits, proto_norm_this_round = prototype_sgd_step_from_batch(
-                            batch, logits, cfg, m_step
-                        )
-                        _append_prototype_update_event(
-                            log,
-                            cfg=cfg,
-                            update_index_m=m_step,
-                            env_round_ended=t,
-                            theta_before=theta_before,
-                            theta_after=logits,
-                            prototype_update_norm=proto_norm_this_round,
-                            final_flush=False,
-                            interaction_n_at_update=interaction_n,
-                            batch=batch,
-                        )
-                        last_grad_norm = proto_norm_this_round
-                        prototype_step_m += 1
-                        batch.clear()
-
             batch_ll_round = batch_ll
 
-            if cfg.log_beliefs_tensor and cfg.log_beliefs_every_interaction:
-                for ii in range(cfg.num_agents):
-                    for jj in range(cfg.num_agents):
-                        if ii == jj:
-                            continue
-                        br = {"round": t, "i": ii, "j": jj}
-                        for k in range(cfg.num_prototypes):
-                            br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
-                        log.belief_rows.append(br)
+        if cfg.log_beliefs_tensor and cfg.log_beliefs_every_interaction:
+            for ii in range(cfg.num_agents):
+                for jj in range(cfg.num_agents):
+                    if ii == jj:
+                        continue
+                    br = {"round": t, "i": ii, "j": jj}
+                    for k in range(cfg.num_prototypes):
+                        br[f"b_{k}"] = float(belief_tensor[ii, jj, k])
+                    log.belief_rows.append(br)
+
+        # ── Phase 3: Round-based prototype update (every Q rounds) ──
+        # Paper Algorithm 1 lines 11-15: prototype update at round boundaries,
+        # NOT mid-round. Q = prototype_Q() is the number of rounds between updates.
+        if not cfg.learning_frozen and (t + 1) % Q == 0 and batch:
+            if cfg.freeze_prototype_parameters:
+                batch.clear()
+            else:
+                theta_before = logits.copy()
+                m_step = prototype_step_m
+                logits, proto_norm_this_round = prototype_sgd_step_from_batch(
+                    batch, logits, cfg, m_step
+                )
+                _append_prototype_update_event(
+                    log,
+                    cfg=cfg,
+                    update_index_m=m_step,
+                    env_round_ended=t,
+                    theta_before=theta_before,
+                    theta_after=logits,
+                    prototype_update_norm=proto_norm_this_round,
+                    final_flush=False,
+                    interaction_n_at_update=interaction_n,
+                    batch=batch,
+                )
+                last_grad_norm = proto_norm_this_round
+                prototype_step_m += 1
+                batch.clear()
 
         belief_change_norm = float(np.sum(np.abs(belief_tensor - belief_before_round)))
 
