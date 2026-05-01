@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "description": "Frozen paper defaults for Milestone 7 (full non-smoke). Tune only via env or CLI overrides in milestone7_manuscript.",
+  "milestone4": {
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "rounds_sparse": 5000,
+    "rounds_q": 5000,
+    "rounds_init": 5000,
+    "rounds_k": 5000,
+    "em_restarts": 8
+  },
+  "milestone5": {
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "rounds": 4000,
+    "include_tft": false,
+    "skip_ppo": true
+  },
+  "milestone6": {
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "rounds": 2000,
+    "run_matching_pennies": true
+  },
+  "smoke_override": {
+    "milestone4": {
+      "seeds": [0, 1],
+      "rounds_sparse": 40,
+      "rounds_q": 40,
+      "rounds_init": 40,
+      "rounds_k": 40
+    },
+    "milestone5": {
+      "seeds": [0, 1],
+      "rounds": 24
+    },
+    "milestone6": {
+      "seeds": [0, 1],
+      "rounds": 20,
+      "run_matching_pennies": false
+    }
+  }
+}

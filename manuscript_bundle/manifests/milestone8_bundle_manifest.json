@@ -1,0 +1,13 @@
+{
+  "appendix_moves_count": 10,
+  "milestone": "milestone8_camera_ready",
+  "missing_main_figures": [],
+  "resolved_main_figures": [
+    "fig1",
+    "fig2",
+    "fig3",
+    "fig4",
+    "fig5"
+  ],
+  "schema_version": 1
+}

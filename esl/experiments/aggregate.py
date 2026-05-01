@@ -37,7 +37,7 @@ def find_run_directories(root: Path) -> list[Path]:
         return []
     out: list[Path] = []
     for p in root.rglob("summary_metrics.json"):
-        if "_aggregates" in p.parts:
+        if "_aggregates" in p.parts or "_aggregate" in p.parts:
             continue
         out.append(p.parent.resolve())
     # de-duplicate (rglob shouldn't duplicate)
@@ -98,7 +98,11 @@ def write_aggregate_csv(
     output.parent.mkdir(parents=True, exist_ok=True)
     rows = []
     for rd in find_run_directories(root):
-        if rd.resolve() == output.parent.resolve() or "_aggregates" in rd.parts:
+        if (
+            rd.resolve() == output.parent.resolve()
+            or "_aggregates" in rd.parts
+            or "_aggregate" in rd.parts
+        ):
             continue
         rows.append(row_from_run_dir(rd, root=root))
     rows.sort(key=lambda r: r["run_id"])

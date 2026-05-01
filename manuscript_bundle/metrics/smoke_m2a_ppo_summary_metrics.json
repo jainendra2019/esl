@@ -1,0 +1,19 @@
+{
+  "baseline_adapter": "third_party.PPO-PyTorch",
+  "baseline_family": "independent_ppo",
+  "cumulative_social_payoff": 348.0,
+  "episodes": 8,
+  "final_belief_argmax_accuracy": null,
+  "final_belief_entropy": null,
+  "final_matched_cross_entropy": null,
+  "final_mce": null,
+  "mce_note": "MCE is undefined: PPO does not learn ESL prototypes.",
+  "mean_payoff_per_agent_per_round": 1.8125,
+  "mode": "recovery_style_fixed_opponent",
+  "official_repo_commit": "728cce83d7ab628fe2634eabcdf3239997eb81dd",
+  "run_kind": "baseline",
+  "schema_version": 1,
+  "seed": 42,
+  "timesteps": 96,
+  "wall_time_sec": 0.037617458030581474
+}

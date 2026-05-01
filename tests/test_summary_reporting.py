@@ -162,3 +162,4 @@ def test_summary_metrics_json_roundtrip_includes_new_keys():
         data = json.loads((rd / "summary_metrics.json").read_text(encoding="utf-8"))
     assert "final_mce" in data
     assert "num_interaction_events_executed" in data
+    assert data.get("schema_version") == 1

@@ -1,0 +1,39 @@
+{
+  "baseline": {
+    "adapter": "third_party.PPO-PyTorch",
+    "deviations": [
+      "Upstream train.py targets Roboschool; adapter runs a custom repeated PD vs fixed opponent.",
+      "No ESL beliefs or prototypes; MCE is not defined for this baseline."
+    ],
+    "esl_run_dir": "runs/milestone1_smoke",
+    "provenance": {
+      "commit": "728cce83d7ab628fe2634eabcdf3239997eb81dd",
+      "entry_module": "PPO.py",
+      "local_path": "third_party/PPO-PyTorch",
+      "name": "PPO-PyTorch",
+      "url": "https://github.com/nikhilbarhate99/PPO-PyTorch"
+    },
+    "source_protocol": "docs/baselines/BASELINE_PROTOCOL.md"
+  },
+  "expected_outputs": {
+    "optional_relative": [
+      "metrics_trajectory.csv",
+      "predictions.json",
+      "config.json",
+      "provenance.json"
+    ],
+    "required_relative": [
+      "manifest.json",
+      "summary_metrics.json"
+    ]
+  },
+  "experiment_id": "baseline.ppo.recovery_smoke",
+  "extras": {
+    "timesteps": 96,
+    "wall_time_sec": 0.037617458030581474
+  },
+  "output_convention": "esl_canonical_v1",
+  "run_kind": "baseline",
+  "schema_version": 1,
+  "seed": 42
+}

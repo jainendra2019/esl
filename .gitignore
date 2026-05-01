@@ -7,6 +7,8 @@ runs/*
 
 # Scratch / temp experiment dirs
 _tmp*/
+outputs/
+manuscript_bundle/reports/*_timeseries.csv
 
 # Python
 __pycache__/

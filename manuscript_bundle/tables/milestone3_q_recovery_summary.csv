@@ -1,0 +1,3 @@
+prototype_update_every_q,run_id,num_rounds_executed,final_mce,final_matched_cross_entropy,final_belief_argmax_accuracy,kmeans_mce,fcm_mce,n_observed_w_positive,prototype_update_count
+1,Q_1/seed_0,2,1.2173787658817625,2.434757531763525,0.5105263157894737,0.5222655649365647,0.6940550687942056,18,18
+2,Q_2/seed_0,2,1.2223346127546266,2.4446692255092533,0.5078947368421053,0.5222655649365647,0.6940550687942056,18,9

@@ -32,6 +32,21 @@ def prisoners_dilemma(cfg: ESLConfig) -> PayoffMatrices:
     return PayoffMatrices(row=row, col=col)
 
 
+def matching_pennies() -> PayoffMatrices:
+    """Zero-sum matching pennies: row wants to match actions; column is opponent."""
+    row = np.array([[1.0, -1.0], [-1.0, 1.0]], dtype=np.float64)
+    col = -row
+    return PayoffMatrices(row=row, col=col)
+
+
+def game_payoffs(cfg: ESLConfig) -> PayoffMatrices:
+    """Dispatch PD vs matching pennies (``cfg.payoff_game``)."""
+    name = getattr(cfg, "payoff_game", "prisoners_dilemma")
+    if name == "matching_pennies":
+        return matching_pennies()
+    return prisoners_dilemma(cfg)
+
+
 class HiddenPolicy(ABC):
     """Fixed policy for an agent (no learned state in v1 beyond last-action hooks if needed)."""
 
@@ -60,10 +75,29 @@ class AlwaysDefect(HiddenPolicy):
         return np.array([0.0, 1.0], dtype=np.float64)
 
 
+class TitForTat(HiddenPolicy):
+    """
+    Cooperate on the first observed encounter; thereafter copy the opponent's last action.
+
+    The trainer passes ``last_opponent_action`` as the most recent action played by whoever
+    the agent last faced (single scalar per agent). This is a pragmatic v1 hook for
+    well-mixed populations, not full pairwise TFT memory.
+    """
+
+    def act(self, rng: np.random.Generator, *, last_opponent_action: int | None) -> int:
+        if last_opponent_action is None:
+            return ACTION_COOPERATE
+        return int(last_opponent_action)
+
+    def action_probs(self) -> np.ndarray:
+        return np.array([0.5, 0.5], dtype=np.float64)
+
+
 # Registry: prototype / type index -> policy instance
 HIDDEN_POLICY_BUILDERS: dict[int, type[HiddenPolicy]] = {
     0: AlwaysCooperate,
     1: AlwaysDefect,
+    2: TitForTat,
 }
 
 
@@ -77,7 +111,7 @@ def true_type_distributions(num_types: int) -> np.ndarray:
     """
     Shape (K, 2): row k is p(a | nominal type k) used for Hungarian CE / metrics.
 
-    When K exceeds the number of registered base policies (v1: AC and AD only),
+    When K exceeds the number of registered base policies (v1: AC, AD, TFT),
     rows **cycle** through those templates (``k % n_behavioral``). That is an
     **implementation convenience** for overparameterized / edge tests—not a
     theoretical restriction; see **ALGORITHM.md** (*Current implementation* — “Implementation note: K larger

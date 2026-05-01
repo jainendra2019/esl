@@ -1,0 +1,1 @@
+**Figure 5.** Relationship between focal payoff and mismatch between inferred and reference opponent structure. Each point is one experimental configuration and seed; the diagnostic zero-sum regime is excluded here (see appendix).

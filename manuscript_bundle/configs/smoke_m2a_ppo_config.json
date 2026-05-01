@@ -1,0 +1,16 @@
+{
+  "adapter": "esl.baselines.ppo_adapter",
+  "official_repo": "https://github.com/nikhilbarhate99/PPO-PyTorch",
+  "seed": 42,
+  "opponent_action": 1,
+  "max_training_timesteps": 96,
+  "update_timestep": 32,
+  "max_ep_len": 12,
+  "K_epochs": 4,
+  "state_dim": 2,
+  "action_dim": 2,
+  "pd_t": 5.0,
+  "pd_r": 3.0,
+  "pd_p": 1.0,
+  "pd_s": 0.0
+}

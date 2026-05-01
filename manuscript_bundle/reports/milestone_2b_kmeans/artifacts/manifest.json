@@ -1,0 +1,43 @@
+{
+  "baseline": {
+    "adapter": "esl.baselines.kmeans_actions",
+    "deviations": [
+      "Batch static fit on full interaction_observations.csv (Protocol T style for smoke).",
+      "No sequential belief or prototype learning in baseline path."
+    ],
+    "esl_run_dir": "runs/m2b_esl_ref",
+    "provenance": {
+      "commit": null,
+      "local_path": "esl/baselines",
+      "modules": [
+        "esl.baselines.kmeans_actions",
+        "esl.baselines.features_conditional",
+        "esl.baselines.evaluate"
+      ],
+      "name": "ESL in-project static clustering",
+      "url": "https://github.com/jainendra2019/esl"
+    },
+    "source_protocol": "docs/baselines/BASELINE_PROTOCOL.md"
+  },
+  "expected_outputs": {
+    "optional_relative": [
+      "metrics_trajectory.csv",
+      "predictions.json",
+      "config.json",
+      "provenance.json"
+    ],
+    "required_relative": [
+      "manifest.json",
+      "summary_metrics.json"
+    ]
+  },
+  "experiment_id": "baseline.cluster.kmeans_recovery_smoke",
+  "extras": {
+    "clustering_method": "kmeans",
+    "mce_mapping": "phi_matrix_to_logits + Hungarian MCE"
+  },
+  "output_convention": "esl_canonical_v1",
+  "run_kind": "baseline",
+  "schema_version": 1,
+  "seed": 42
+}

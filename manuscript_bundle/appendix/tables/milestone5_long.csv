@@ -1,0 +1,9 @@
+seed,method,focal_cumulative_payoff,focal_mean_payoff_per_round,mean_payoff_per_agent_per_round,final_mce,final_belief_argmax_accuracy,run_dir
+0,esl,40.0,1.3333333333333333,2.0833333333333335,0.689708700034656,0.7333333333333333,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/esl/seed_0
+0,esl_ablation_k1,45.0,1.5,2.0638297872340425,0.6567624329649646,1.0,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/esl_ablation_k1/seed_0
+0,clustering_kmeans,42.0,1.4,2.0729166666666665,0.0010005003335836456,0.6,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/clustering_kmeans/seed_0
+0,clustering_fcm,43.0,1.4333333333333333,2.0416666666666665,0.0010005003335836456,0.4,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/clustering_fcm/seed_0
+1,esl,63.0,2.1,2.108695652173913,0.7230781509170529,0.6333333333333333,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/esl/seed_1
+1,esl_ablation_k1,59.0,1.9666666666666666,2.066666666666667,2.0499549159326977,1.0,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/esl_ablation_k1/seed_1
+1,clustering_kmeans,61.0,2.033333333333333,2.119565217391304,0.0010005003335836456,0.6333333333333333,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/clustering_kmeans/seed_1
+1,clustering_fcm,63.0,2.1,2.108695652173913,0.0010005003335836456,0.6,/Users/jainendra/Documents/Cursor/ESL/runs/m7_generate_bundle/milestone5/clustering_fcm/seed_1

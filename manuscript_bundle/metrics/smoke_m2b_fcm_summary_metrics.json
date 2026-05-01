@@ -1,0 +1,21 @@
+{
+  "baseline_adapter": "esl.baselines.fuzzy_cmeans",
+  "baseline_family": "offline_static_clustering",
+  "clustering_method": "fcm",
+  "code_origin": "in_project",
+  "cumulative_social_payoff": null,
+  "final_belief_argmax_accuracy": null,
+  "final_belief_entropy": null,
+  "final_matched_cross_entropy": 0.3400693780953717,
+  "final_mce": 0.17003468904768584,
+  "mce_note": "Hungarian-matched CE vs games.true_type_distributions after phi\u2192logits map.",
+  "mean_payoff_per_agent_per_round": null,
+  "mode": "recovery_static_fit_offline",
+  "objective": 0.011364167110069693,
+  "protocol_doc": "docs/baselines/BASELINE_PROTOCOL.md",
+  "run_kind": "baseline",
+  "schema_version": 1,
+  "seed": 43,
+  "timesteps": 50,
+  "wall_time_sec": 0.00020637502893805504
+}

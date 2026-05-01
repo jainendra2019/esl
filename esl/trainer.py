@@ -5,6 +5,7 @@ Implementation narrative and pseudocode (faithful to this file) live in **ALGORI
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -16,6 +17,7 @@ import numpy as np
 from esl import beliefs as belief_ops
 from esl import games
 from esl.config import ESLConfig
+from esl.experiment_registry import SUMMARY_METRICS_SCHEMA_VERSION
 from esl.interaction_protocol import sample_L_t, sample_ordered_pairs_without_replacement
 from esl.metrics import (
     belief_argmax_accuracy,
@@ -315,8 +317,9 @@ def run_esl(
     run_dir.mkdir(parents=True, exist_ok=True)
     cfg.save_json(run_dir / "config.json")
 
-    pay = games.prisoners_dilemma(cfg)
-    true_type_probs = games.true_type_distributions(cfg.num_prototypes)
+    pay = games.game_payoffs(cfg)
+    kt_metrics = cfg.metrics_num_true_types if cfg.metrics_num_true_types is not None else cfg.num_prototypes
+    true_type_probs = games.true_type_distributions(int(kt_metrics))
 
     # Assign each agent a true latent type index in 0..K-1 (cyclic if N > K)
     if cfg.force_agent_true_types is not None:
@@ -324,13 +327,23 @@ def run_esl(
     else:
         true_types = np.arange(cfg.num_agents, dtype=int) % cfg.num_prototypes
     _nb = len(games.HIDDEN_POLICY_BUILDERS)
-    hidden_policies = [
-        games.build_hidden_policy(int(true_types[a]) % _nb) for a in range(cfg.num_agents)
-    ]
+    if cfg.force_hidden_policy_by_agent is not None:
+        hidden_policies = [
+            games.build_hidden_policy(int(cfg.force_hidden_policy_by_agent[a]) % _nb)
+            for a in range(cfg.num_agents)
+        ]
+    else:
+        hidden_policies = [
+            games.build_hidden_policy(int(true_types[a]) % _nb) for a in range(cfg.num_agents)
+        ]
 
     esl_mask = np.zeros(cfg.num_agents, dtype=bool)
     if cfg.mode == "adaptation":
-        esl_mask[:] = True
+        if cfg.adaptation_esl_agent_indices is not None:
+            for idx in cfg.adaptation_esl_agent_indices:
+                esl_mask[int(idx)] = True
+        else:
+            esl_mask[:] = True
     # Recovery: fixed hidden policies for everyone (no ESL action model)
 
     if cfg.prototype_logits_override is not None:
@@ -344,6 +357,7 @@ def run_esl(
     prototype_step_m = 0
     last_grad_norm = 0.0
     last_opp: dict[int, int | None] = {i: None for i in range(cfg.num_agents)}
+    interaction_obs_rows: list[dict[str, Any]] = []
 
     stopped_on_convergence = False
     convergence_round: int | None = None
@@ -406,6 +420,18 @@ def run_esl(
 
             w = sample_observation_mask(cfg, rng)
             s = action_to_signal(a_j)
+            if cfg.log_interaction_observations:
+                interaction_obs_rows.append(
+                    {
+                        "round": t,
+                        "i": int(i),
+                        "j": int(j),
+                        "w": float(w),
+                        "s": int(s),
+                        "a_i": int(a_i),
+                        "a_j": int(a_j),
+                    }
+                )
             if cfg.learning_frozen:
                 b_frozen = belief_tensor[i, j].copy()
                 batch_ll = (
@@ -420,9 +446,13 @@ def run_esl(
                     else 0.0
                 )
             else:
-                rec = observe_signal_update_belief(
-                    belief_tensor, logits, i=i, j=j, signal=s, w=w, cfg=cfg
-                )
+                if cfg.belief_updates_enabled:
+                    rec = observe_signal_update_belief(
+                        belief_tensor, logits, i=i, j=j, signal=s, w=w, cfg=cfg
+                    )
+                else:
+                    b_ij_t = belief_tensor[i, j].copy()
+                    rec = BatchRecord(i=i, j=j, signal=s, w=w, b_ij=b_ij_t)
                 batch.append(rec)
                 batch_ll = (
                     float(
@@ -571,6 +601,7 @@ def run_esl(
         }
     learned_p = stable_softmax(logits)
     summary_out: dict[str, Any] = {
+        "schema_version": SUMMARY_METRICS_SCHEMA_VERSION,
         "final_matched_cross_entropy": final_ce,
         "final_mce": mce_value(true_type_probs, logits),
         "permutation_true_to_learned": final_perm.tolist(),
@@ -608,8 +639,33 @@ def run_esl(
     _write_prototype_update_steps_csv(
         run_dir / "prototype_update_steps.csv", log.prototype_update_events
     )
+    if cfg.log_interaction_observations:
+        obs_path = run_dir / "interaction_observations.csv"
+        _write_interaction_observations_csv(obs_path, interaction_obs_rows)
+        body = obs_path.read_bytes()
+        manifest = {
+            "schema_version": 1,
+            "file": "interaction_observations.csv",
+            "sha256": hashlib.sha256(body).hexdigest(),
+            "n_rows": len(interaction_obs_rows),
+            "columns": ["round", "i", "j", "w", "s", "a_i", "a_j"],
+        }
+        (run_dir / "observation_manifest.json").write_text(
+            json.dumps(manifest, indent=2), encoding="utf-8"
+        )
 
     return log, logits, belief_tensor, summary_out, run_dir
+
+
+def _write_interaction_observations_csv(
+    path: Path, rows: list[dict[str, Any]]
+) -> None:
+    """CSV for offline baselines; header always present. Semantics: observer i, target j, signal s=a_j."""
+    cols = ["round", "i", "j", "w", "s", "a_i", "a_j"]
+    lines = [",".join(cols)]
+    for r in rows:
+        lines.append(",".join(str(r[c]) for c in cols))
+    path.write_text("\n".join(lines) + ("\n" if rows else ""), encoding="utf-8")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

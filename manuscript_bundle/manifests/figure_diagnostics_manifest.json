@@ -1,0 +1,59 @@
+{
+  "audit_smoke": false,
+  "figure_decisions": [
+    {
+      "bytes": 120070,
+      "decision": "KEEP",
+      "description": "M4 sparse observability",
+      "figure": "fig1",
+      "path": "main/figures/fig1.png",
+      "reasons": [
+        "present and above size threshold"
+      ]
+    },
+    {
+      "bytes": 83256,
+      "decision": "KEEP",
+      "description": "M4 Q / batch cadence",
+      "figure": "fig2",
+      "path": "main/figures/fig2.png",
+      "reasons": [
+        "present and above size threshold"
+      ]
+    },
+    {
+      "bytes": 343722,
+      "decision": "KEEP",
+      "description": "M5 adaptation trajectories",
+      "figure": "fig3",
+      "path": "main/figures/fig3.png",
+      "reasons": [
+        "present and above size threshold"
+      ]
+    },
+    {
+      "bytes": 110973,
+      "decision": "KEEP",
+      "description": "M5 method comparison",
+      "figure": "fig4",
+      "path": "main/figures/fig4.png",
+      "reasons": [
+        "present and above size threshold"
+      ]
+    },
+    {
+      "bytes": 125926,
+      "decision": "KEEP",
+      "description": "M6 payoff vs structure (main)",
+      "figure": "fig5",
+      "path": "main/figures/fig5.png",
+      "reasons": [
+        "present and above size threshold"
+      ]
+    }
+  ],
+  "milestone4_flags": [],
+  "milestone5_flags": [],
+  "milestone6_flags": [],
+  "schema_version": 1
+}

@@ -1,0 +1,10 @@
+{
+  "adapter": "esl.baselines.fuzzy_cmeans",
+  "clustering_method": "fcm",
+  "esl_run_dir": "/private/var/folders/xl/kjf5cjqj64nbngtnz91mmyc40000gn/T/m2b_esl_ocx317dh/esl",
+  "fcm_m": 2.0,
+  "kmeans_n_init": 3,
+  "phi_feature_hash_sha256_prefix": "54e8892701b3fefa",
+  "protocol_doc": "docs/baselines/BASELINE_PROTOCOL.md",
+  "seed": 43
+}

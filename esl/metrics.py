@@ -19,23 +19,40 @@ def cross_entropy(p_true: np.ndarray, q: np.ndarray, eps: float = 1e-12) -> floa
 def pairwise_assignment_cost(true_probs: np.ndarray, learned_logits: np.ndarray) -> np.ndarray:
     """
     Cost matrix C[t, k] = CE(true_t || softmax(theta_k)).
-    true_probs: (K, A), learned_logits: (K, A)
+
+    ``true_probs`` shape ``(Kt, A)``, ``learned_logits`` shape ``(Km, A)`` (rectangular allowed).
     """
     learned_p = stable_softmax(learned_logits)
-    k = true_probs.shape[0]
-    c = np.zeros((k, k), dtype=np.float64)
-    for t in range(k):
-        for k_idx in range(k):
+    kt = int(true_probs.shape[0])
+    km = int(learned_logits.shape[0])
+    c = np.zeros((kt, km), dtype=np.float64)
+    for t in range(kt):
+        for k_idx in range(km):
             c[t, k_idx] = cross_entropy(true_probs[t], learned_p[k_idx])
     return c
 
 
 def hungarian_min_cost_permutation(cost: np.ndarray) -> tuple[np.ndarray, float]:
-    """Returns (perm, total_cost) where perm[t] = assigned column index (learned prototype)."""
+    """
+    Returns ``(perm, total_cost)`` where ``perm[t]`` is the matched learned prototype index for
+    true type ``t`` (``perm`` has length ``cost.shape[0]``).
+
+    Handles rectangular ``(Kt, Km)`` costs. SciPy assignment on a single column is ambiguous;
+    when ``Km == 1`` we assign every true type to the sole prototype.
+    """
+    kt, km = int(cost.shape[0]), int(cost.shape[1])
+    if km == 1:
+        perm = np.zeros(kt, dtype=int)
+        total = float(np.sum(cost[:, 0]))
+        return perm, total
+    if kt == 1:
+        j = int(np.argmin(cost[0]))
+        perm = np.array([j], dtype=int)
+        total = float(cost[0, j])
+        return perm, total
     row_ind, col_ind = linear_sum_assignment(cost)
     total = float(cost[row_ind, col_ind].sum())
-    k = cost.shape[0]
-    perm = np.empty(k, dtype=int)
+    perm = np.empty(kt, dtype=int)
     perm[row_ind] = col_ind
     return perm, total
 
@@ -63,18 +80,16 @@ def match_prototypes_to_types(
     """
     Permutation-invariant matching: returns (perm, total_ce) where perm[t] is learned index for true t.
 
-    The minimized objective is **K × MCE** in the paper sense:
-    MCE = (1/K) * total_ce with CE(p* || softmax(θ)) per matched pair.
-    method: 'hungarian', 'brute', or 'auto' (brute if K<=4 else hungarian).
+    The minimized objective is **Kt × MCE** in the paper sense:
+    MCE = (1/Kt) * total_ce with CE(p* || softmax(θ)) per matched pair (``Kt`` true types).
+
+    Square ``Kt == Km``: optional exact brute for ``Kt <= 4``. Rectangular costs use Hungarian.
     """
     cost = pairwise_assignment_cost(true_probs, learned_logits)
-    k = cost.shape[0]
-    if method == "hungarian":
-        return hungarian_min_cost_permutation(cost)
-    if method == "brute":
-        return brute_force_min_permutation(cost)
-    if k <= 4:
-        return brute_force_min_permutation(cost)
+    kt, km = int(cost.shape[0]), int(cost.shape[1])
+    if kt == km and method != "hungarian":
+        if method == "brute" or (method == "auto" and kt <= 4):
+            return brute_force_min_permutation(cost)
     return hungarian_min_cost_permutation(cost)
 
 
@@ -89,8 +104,8 @@ def mce_value(
     min_{σ ∈ S_K} (1/K) Σ_k CE(p*_k || softmax(θ_{σ(k)})).
     """
     _, total = match_prototypes_to_types(true_probs, learned_logits, method=method)
-    k = true_probs.shape[0]
-    return float(total / max(k, 1))
+    kt = int(true_probs.shape[0])
+    return float(total / max(kt, 1))
 
 
 def belief_cross_entropy_vs_type(
@@ -185,6 +200,8 @@ def belief_argmax_accuracy(
             if i == j:
                 continue
             t_j = int(true_types[j])
+            if t_j < 0 or t_j >= len(perm):
+                continue
             k_star = int(perm[t_j])
             pred = int(np.argmax(beliefs[i, j]))
             correct += int(pred == k_star)

@@ -1,0 +1,152 @@
+{
+  "milestone4_meta": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "smoke": false,
+    "rounds": {
+      "sparse": 5000,
+      "q": 5000,
+      "init_noise": 5000,
+      "k_latent": 5000
+    },
+    "grids": {
+      "p_obs": [
+        1.0,
+        0.5,
+        0.3,
+        0.2
+      ],
+      "q": [
+        1,
+        5,
+        15
+      ],
+      "init_noise": [
+        0.01,
+        0.05,
+        0.1
+      ],
+      "k": [
+        2,
+        3
+      ]
+    },
+    "aggregate_dir": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone4/aggregate",
+    "per_run_metrics_csv": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone4/aggregate/milestone4_per_run_metrics.csv",
+    "figures_dir": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone4/figures"
+  },
+  "milestone5_meta": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "smoke": false,
+    "include_tft": false,
+    "num_rounds_requested": 4000,
+    "methods": [
+      "esl",
+      "esl_ablation_k1",
+      "clustering_kmeans",
+      "clustering_fcm"
+    ],
+    "ppo_skipped": false,
+    "long_csv": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone5/aggregate/milestone5_long.csv",
+    "comparison_csv": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone5/aggregate/milestone5_method_comparison.csv"
+  },
+  "milestone6_meta": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "smoke": false,
+    "rounds": 2000,
+    "k_model_grid": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "p_obs_grid": [
+      1.0,
+      0.75,
+      0.5,
+      0.25
+    ],
+    "matching_pennies_ran": true,
+    "long_csv": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone6/aggregate/milestone6_all_runs.csv",
+    "aggregate_json": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone6/aggregate/milestone6_run_meta.json"
+  },
+  "matching_pennies_main_text": true,
+  "matching_pennies_audit": {
+    "n_rows": 10,
+    "eligible": true,
+    "mean": 0.421,
+    "std": 0.021429470880593906,
+    "cv": 0.05090135601091189,
+    "range": 0.0615,
+    "reason": "ok"
+  },
+  "numeric_spot_checks": {
+    "milestone4": {},
+    "milestone5": {
+      "m5_methods": {
+        "path": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone5/aggregate/milestone5_method_comparison.csv",
+        "warnings": [],
+        "columns": {
+          "focal_mean_per_round_mean": {
+            "n": 4.0,
+            "ci_width": 0.017085036916847596
+          }
+        }
+      }
+    },
+    "milestone6": {
+      "m6_k": {
+        "path": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone6/aggregate/m6_k_misspec_aggregate.csv",
+        "warnings": [],
+        "columns": {
+          "focal_mean_payoff_per_round_mean": {
+            "n": 4.0,
+            "ci_width": 0.004555643448068913
+          }
+        }
+      },
+      "m6_p": {
+        "path": "/Users/jainendra/Documents/Cursor/ESL/runs/m7_full/milestone6/aggregate/m6_p_obs_aggregate.csv",
+        "warnings": [],
+        "columns": {
+          "focal_mean_payoff_per_round_mean": {
+            "n": 4.0,
+            "ci_width": 0.017124880778284002
+          }
+        }
+      }
+    }
+  }
+}

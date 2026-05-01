@@ -1,0 +1,1 @@
+Main performance grid over IPD, Stag Hunt, and Matching Pennies under fixed-type, adaptive-agent, and belief-conditioned-agent regimes. Bars report focal agent 0 mean payoff per round with 95% confidence intervals over 10 seeds and 500 rounds; for each task, regime, and seed, every method receives the same opponent schedule.

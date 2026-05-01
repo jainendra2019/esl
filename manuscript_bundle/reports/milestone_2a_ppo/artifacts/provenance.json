@@ -1,0 +1,12 @@
+{
+  "notes": "Adapter does not use upstream train.py (roboschool). Only PPO.ActorCritic + PPO.update.",
+  "sources": [
+    {
+      "commit": "728cce83d7ab628fe2634eabcdf3239997eb81dd",
+      "entry_module": "PPO.py",
+      "local_path": "third_party/PPO-PyTorch",
+      "name": "PPO-PyTorch",
+      "url": "https://github.com/nikhilbarhate99/PPO-PyTorch"
+    }
+  ]
+}

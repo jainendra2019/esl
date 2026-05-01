@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "milestone": "milestone8_camera_ready",
+  "one_line_takeaway": "Belief-coupled latent opponent models improve long-run payoffs when feedback about others is limited.",
+  "main_figures": [
+    {
+      "paper_id": "fig1",
+      "paper_figure": "main/figures/fig1.png",
+      "original_artifact": "main/figures/sparse_pobs_mce_ci.png",
+      "output_file": "fig1.png",
+      "source_resolved": "sparse_pobs_mce_ci.png",
+      "status": "ok",
+      "claim": "Recovery remains stable as observation probability varies.",
+      "evidence": "Cross-seed mean and 95% CI for matched cross-entropy across observation rates.",
+      "caption_path": "text/main/captions/fig1.md"
+    },
+    {
+      "paper_id": "fig2",
+      "paper_figure": "main/figures/fig2.png",
+      "original_artifact": "main/figures/q_recovery_mce_ci.png",
+      "output_file": "fig2.png",
+      "source_resolved": "q_recovery_mce_ci.png",
+      "status": "ok",
+      "claim": "Performance is sensitive to how often latent type parameters are updated from data.",
+      "evidence": "Mean matched cross-entropy (\u00b195% CI) across update cadences.",
+      "caption_path": "text/main/captions/fig2.md"
+    },
+    {
+      "paper_id": "fig3",
+      "paper_figure": "main/figures/fig3.png",
+      "original_artifact": "main/figures/milestone5_adaptation_focal_payoff.png",
+      "output_file": "fig3.png",
+      "source_resolved": "milestone5_adaptation_focal_payoff.png",
+      "status": "ok",
+      "claim": "Payoffs evolve over repeated interaction when learners face a heterogeneous population.",
+      "evidence": "Focal-agent mean payoff per round with cross-seed uncertainty bands.",
+      "caption_path": "text/main/captions/fig3.md"
+    },
+    {
+      "paper_id": "fig4",
+      "paper_figure": "main/figures/fig4.png",
+      "original_artifact": "main/figures/milestone5_method_comparison_bars.png",
+      "output_file": "fig4.png",
+      "source_resolved": "milestone5_method_comparison_bars.png",
+      "status": "ok",
+      "claim": "Structured opponent modeling compares favorably to learning-free clustering baselines.",
+      "evidence": "End-horizon focal payoff (mean \u00b195% CI) across learning approaches.",
+      "caption_path": "text/main/captions/fig4.md"
+    },
+    {
+      "paper_id": "fig5",
+      "paper_figure": "main/figures/fig5.png",
+      "original_artifact": "main/figures/m6_payoff_vs_mce_main_text.png",
+      "output_file": "fig5.png",
+      "source_resolved": "m6_payoff_vs_mce_main_text.png",
+      "status": "ok",
+      "claim": "Better alignment between inferred and reference opponent structure co-occurs with higher payoffs.",
+      "evidence": "Focal mean payoff versus matched cross-entropy after excluding the oscillatory diagnostic regime.",
+      "caption_path": "text/main/captions/fig5.md"
+    }
+  ],
+  "appendix_moves": [
+    "appendix/figures/init_noise_mce_ci.png",
+    "appendix/figures/k_latent_mce_ci.png",
+    "appendix/figures/m6_k_misspec_payoff_ci.png",
+    "appendix/figures/m6_p_obs_payoff_ci.png",
+    "appendix/figures/m6_belief_ablation_bars.png",
+    "appendix/figures/m6_payoff_vs_mce_full_including_mp.png",
+    "appendix/tables/m6_k_misspec_aggregate.csv",
+    "appendix/tables/m6_p_obs_aggregate.csv",
+    "appendix/tables/m6_belief_ablation_aggregate.csv",
+    "appendix/tables/milestone6_all_runs.csv"
+  ],
+  "missing_main_figures": [],
+  "stale_narrative_files_removed": [
+    "text/main/captions/fig_m4_sparse_mce.md",
+    "text/main/captions/fig_m5_adaptation_focal.md",
+    "text/main/captions/fig_m6_structure_payoff.md",
+    "text/main/summaries/results_m4_recovery.md",
+    "text/main/summaries/results_m6_mechanism.md",
+    "text/main/summaries/results_m5_adaptation.md"
+  ]
+}

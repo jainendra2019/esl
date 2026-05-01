@@ -10,6 +10,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 
+from esl.experiments.figure_style import publication_figure_dpi
+
 
 def _read_metrics_trajectory(run_dir: Path) -> tuple[list[int], dict[str, list[float]]]:
     path = run_dir / "metrics_trajectory.csv"
@@ -74,7 +76,36 @@ def plot_flagship_panels(run_dir: Path, out_path: Path, *, title: str | None = N
 
     fig.suptitle(title or f"Flagship-style run: {run_dir.name}")
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path, dpi=publication_figure_dpi())
+    plt.close(fig)
+
+
+def plot_belief_argmax_contribution(
+    run_dir: Path,
+    out_path: Path,
+    *,
+    title: str | None = None,
+) -> None:
+    """
+    Single-panel figure for papers: belief argmax accuracy vs round (ESL-only;
+    offline baselines do not maintain pairwise beliefs).
+    """
+    run_dir = run_dir.resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    rounds, mt = _read_metrics_trajectory(run_dir)
+    if not rounds:
+        raise ValueError(f"empty metrics_trajectory: {run_dir}")
+    fig, ax = plt.subplots(figsize=(5.5, 3.5))
+    ax.plot(rounds, mt["belief_argmax_accuracy"], color="C2", linewidth=1.5)
+    ax.set_xlabel("Environment round")
+    ax.set_ylabel("Belief argmax accuracy")
+    ax.set_ylim(0.0, 1.05)
+    ax.set_title(
+        title or "ESL belief identification (Hungarian-aligned argmax vs true type)"
+    )
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=publication_figure_dpi())
     plt.close(fig)
 
 
@@ -137,7 +168,7 @@ def plot_robustness_from_csv(csv_path: Path, out_path: Path) -> None:
     fig.suptitle(f"Robustness summary ({csv_path.name})")
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path, dpi=publication_figure_dpi())
     plt.close(fig)
 
 
@@ -154,7 +185,7 @@ def plot_failure_vs_success(weak_dir: Path, strong_dir: Path, out_path: Path) ->
     ax.set_title("Failure vs success (matched CE)")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=150)
+    fig.savefig(out_path, dpi=publication_figure_dpi())
     plt.close(fig)
 
 
@@ -175,6 +206,14 @@ def main() -> None:
     pc.add_argument("strong_dir", type=Path)
     pc.add_argument("-o", "--out", type=Path, required=True)
 
+    pb = sub.add_parser(
+        "belief-acc",
+        help="single-panel belief argmax accuracy vs round (contribution figure)",
+    )
+    pb.add_argument("run_dir", type=Path)
+    pb.add_argument("-o", "--out", type=Path, required=True)
+    pb.add_argument("--title", type=str, default=None)
+
     args = p.parse_args()
     if args.cmd == "flagship":
         plot_flagship_panels(args.run_dir, args.out)
@@ -182,6 +221,10 @@ def main() -> None:
         plot_robustness_from_csv(args.csv_path, args.out)
     elif args.cmd == "compare":
         plot_failure_vs_success(args.weak_dir, args.strong_dir, args.out)
+    elif args.cmd == "belief-acc":
+        plot_belief_argmax_contribution(
+            args.run_dir, args.out, title=args.title
+        )
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import pytest
 from esl.experiments.sparse_pobs_sweep import (
     POBS_SWEEP_VALUES,
     plot_final_ce_vs_pobs,
+    plot_sparse_pobs_mce_belief,
     run_sparse_pobs_sweep,
 )
 
@@ -29,7 +30,11 @@ def test_sparse_obs_accepts_all_sweep_pobs(p: float):
 def test_run_sparse_pobs_sweep_writes_csv_and_png(tmp_path: Path):
     root = tmp_path / "sweep"
     csv_path, png_path = run_sparse_pobs_sweep(
-        out_root=root, num_rounds=2, seed=0, plot=True
+        out_root=root,
+        num_rounds=2,
+        seed=0,
+        plot=True,
+        include_baselines=False,
     )
     assert csv_path.is_file()
     assert png_path is not None and png_path.is_file()
@@ -43,13 +48,20 @@ def test_plot_only_from_csv(tmp_path: Path):
     root = tmp_path / "sweep"
     (root).mkdir()
     csv_path = root / "sparse_pobs_summary.csv"
-    csv_path.write_text(
+    hdr = (
         "p_obs,run_id,num_rounds_executed,final_matched_cross_entropy,final_mce,"
+        "final_belief_argmax_accuracy,em_conditional_mce,kmeans_mce,fcm_mce,n_observed_w_positive,"
         "stopped_on_convergence,convergence_round\n"
-        "1.0,a,10,0.5,0.25,False,\n"
-        "0.5,b,10,0.7,0.35,False,\n",
+    )
+    csv_path.write_text(
+        hdr
+        + "1.0,a,10,0.5,0.25,0.9,0.1,0.12,0.13,100,False,\n"
+        + "0.5,b,10,0.7,0.35,0.8,0.2,0.22,0.23,80,False,\n",
         encoding="utf-8",
     )
     out = root / "fig.png"
     plot_final_ce_vs_pobs(csv_path, out)
     assert out.stat().st_size > 80
+    out2 = root / "fig2.png"
+    plot_sparse_pobs_mce_belief(csv_path, out2)
+    assert out2.stat().st_size > 80

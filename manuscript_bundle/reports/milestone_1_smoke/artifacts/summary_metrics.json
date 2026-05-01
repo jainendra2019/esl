@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "final_matched_cross_entropy": 1.3642927211165286,
+  "final_mce": 0.6821463605582643,
+  "permutation_true_to_learned": [
+    0,
+    1
+  ],
+  "cost_matrix": [
+    [
+      0.6563497845687394,
+      0.6785671510096692
+    ],
+    [
+      0.7313505248318491,
+      0.7079429365477893
+    ]
+  ],
+  "final_belief_entropy": 0.693110662790875,
+  "final_belief_argmax_accuracy": 0.5833333333333334,
+  "final_prototype_gap": 0.011397982367657655,
+  "final_prototype_softmax": [
+    [
+      0.5187414006843052,
+      0.48125859931569487
+    ],
+    [
+      0.5073434183166475,
+      0.49265658168335247
+    ]
+  ],
+  "cumulative_social_payoff": 17.0,
+  "mean_payoff_per_agent_per_round": 2.8333333333333335,
+  "prototype_update_count": 3,
+  "prototype_update_every_q": 1,
+  "num_interaction_events_executed": 3,
+  "p_obs": 1.0,
+  "prototype_lr_scale": 1.0,
+  "init_noise": 0.05,
+  "num_rounds": 3,
+  "num_rounds_executed": 3,
+  "stopped_on_convergence": false,
+  "convergence_round": null,
+  "convergence_thresholds": null,
+  "learning_frozen": false,
+  "freeze_prototype_parameters": false,
+  "seed": 42,
+  "mode": "recovery"
+}

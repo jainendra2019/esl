@@ -8,7 +8,11 @@ import pytest
 
 pytest.importorskip("matplotlib")
 
-from esl.plot_neurips import plot_flagship_panels, plot_robustness_from_csv
+from esl.plot_neurips import (
+    plot_belief_argmax_contribution,
+    plot_flagship_panels,
+    plot_robustness_from_csv,
+)
 
 
 def test_plot_flagship_panels_writes_file(tmp_path: Path):
@@ -32,6 +36,21 @@ def test_plot_flagship_panels_writes_file(tmp_path: Path):
     plot_flagship_panels(rd, out)
     assert out.is_file()
     assert out.stat().st_size > 100
+
+
+def test_plot_belief_argmax_contribution_writes_file(tmp_path: Path):
+    rd = tmp_path / "run2"
+    rd.mkdir()
+    (rd / "metrics_trajectory.csv").write_text(
+        "round,belief_entropy_mean,matched_cross_entropy,belief_argmax_accuracy,"
+        "batch_log_likelihood,alpha_logged,prototype_step_m,prototype_update_norm,belief_change_norm\n"
+        "0,0.7,1.0,0.4,0.0,1.0,0,0.0,0.1\n"
+        "1,0.6,0.8,0.85,0.0,1.0,1,0.1,0.1\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "belief.png"
+    plot_belief_argmax_contribution(rd, out)
+    assert out.stat().st_size > 80
 
 
 def test_plot_robustness_from_csv_writes_file(tmp_path: Path):

@@ -60,11 +60,11 @@ def test_v13_weighted_gradient_equals_w_times_b_times_es_minus_p():
 def test_v14_true_type_distributions_cycles_behaviors_when_k_gt_2():
     d4 = true_type_distributions(4)
     assert d4.shape == (4, 2)
-    # Row 0 AC, 1 AD, 2 AC, 3 AD
+    # Row k uses policy k % n_registered (AC, AD, Tit-for-Tat stationary marginals)
     np.testing.assert_allclose(d4[0], [1.0, 0.0], atol=1e-12)
     np.testing.assert_allclose(d4[1], [0.0, 1.0], atol=1e-12)
-    np.testing.assert_allclose(d4[2], [1.0, 0.0], atol=1e-12)
-    np.testing.assert_allclose(d4[3], [0.0, 1.0], atol=1e-12)
+    np.testing.assert_allclose(d4[2], [0.5, 0.5], atol=1e-12)
+    np.testing.assert_allclose(d4[3], [1.0, 0.0], atol=1e-12)
 
 
 @pytest.mark.verification

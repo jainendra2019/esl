@@ -14,7 +14,14 @@ The MVP should demonstrate:
 
 This is **not** a standard EM / i.i.d. latent-variable setting: observations are not exogenous and identically distributed; latent assignments and beliefs affect **future** data; learning is a **closed-loop stochastic process**.
 
+
 This MVP is for validation of the core algorithm, debugging, first recovery plots, and the empirical section of the paper. It is not the final scalable implementation.
+
+Validation standard for this PRD 
+	•	The implementation phase must remain strictly faithful to the current paper draft, especially the two-timescale ordering, the belief-update semantics, the frozen-batch prototype update schedule, the recovery/adaptation experiment split, and the canonical evaluation metrics already defined in this document and in ALGORITHM.md.
+	•	Development must be **test-driven first**: no milestone is considered complete until its required tests pass and its declared artifacts are generated.
+	•	Execution must be **gated by milestone confirmation**: after each milestone, Cursor must stop, summarize status, report generated deliverables, list any deviations or open issues, and wait for explicit confirmation before proceeding to the next milestone.
+	•	All experiment outputs intended for the paper must ultimately be collected into a single reproducible manuscript bundle directory (see new bundling section below).
 
 ⸻
 
@@ -412,6 +419,68 @@ This approximates gradients of the inner objective at `B^\star(\Theta)` in spiri
 
 ⸻
 
+
+8A. Baseline integration policy (official code first, minimal reimplementation)
+
+For the paper experiments, baseline comparison should prefer official or author-released implementations when they are available and compatible with the ESL evaluation protocol. The purpose is to reduce implementation error, preserve fidelity to published methods, and minimize unnecessary engineering effort.
+
+Baseline policy:
+- Use official / author-released code where feasible.
+- Wrap external baselines behind a thin adapter layer rather than rewriting them from scratch.
+- Reimplement a baseline only if: (i) no usable code is available, (ii) the released code is fundamentally incompatible with the ESL matrix-game setting, or (iii) the baseline is intentionally a simple reference model (e.g., FCM/GMM).
+- All baseline runs must be logged under the same experiment manifest structure as ESL, with explicit notes on any deviations from the original codebase or training protocol.
+
+Canonical baseline sources for this project:
+1. Independent PPO
+   - Preferred source: https://github.com/nikhilbarhate99/PPO-PyTorch
+   - Use as a lightweight policy-gradient baseline without opponent modeling.
+   - Integrate via a thin wrapper in the project rather than copying logic into ESL core modules.
+
+2. M-FOS
+   - Preferred source: ICML 2022 supplementary archive at https://media.icml.cc/Conferences/ICML2022/supplementary/lu22d-supp.zip
+   - Treat the released src/ as the primary reference implementation.
+   - Port or wrap only the minimal pieces required to run fair comparisons in the repeated matrix-game setting.
+
+3. MBOM
+   - Preferred source: https://github.com/PKU-RL/MBOM
+   - Use the official codebase as the primary implementation reference.
+   - If the full environment-model stack is too tightly coupled to original environments, isolate the opponent-modeling logic and document any simplifications explicitly.
+
+4. Simple Opponent Model
+   - Preferred source: https://github.com/hhexiy/opponent
+   - Use this as the main external reference for a history-based opponent-modeling baseline.
+   - If exact integration is not feasible, implement the closest faithful reduced version and document the gap in the experiment manifest.
+
+5. FCM/GMM Clustering
+   - These should be implemented in-project.
+   - Rationale: they are simple static clustering baselines, easy to validate directly, and do not require external code.
+
+Repository placement and adapter contract:
+- Place third-party baselines under a dedicated directory such as third_party/ or external/ with clear subfolders per baseline.
+- Do not merge third-party code into ESL core modules.
+- Create project-local adapters under esl/baselines/ that expose a common interface for:
+  - train(...)
+  - evaluate(...)
+  - export_summary(...)
+  - export_predictions(...) if applicable
+- Every adapter must translate baseline outputs into the canonical ESL metric schema (MCE, payoff, belief-related metrics when meaningful, runtime, and manifest metadata).
+
+Fairness and protocol requirements for external baselines:
+- Use matched horizons, matched seeds where possible, and matched interaction logs or environment budgets.
+- Keep the game definitions, observability masks, and evaluation populations identical to ESL.
+- If a baseline cannot naturally support a regime (e.g., belief-conditioned or adaptive setting), the run must be skipped explicitly and the reason recorded.
+- Never silently replace an official baseline with a custom variant without documenting it in the manifest and report.
+
+Test-first requirement for baseline onboarding:
+Before any large sweep is run, each external baseline must pass a small onboarding checklist:
+1. repository snapshot / source path recorded;
+2. adapter smoke test passes on one tiny run;
+3. outputs can be converted to the canonical experiment schema;
+4. runtime and seed are logged;
+5. any incompatibilities with the ESL setting are documented.
+
+The goal of this policy is not full benchmark breadth, but faithful, low-risk comparison against the agreed baseline set with minimum avoidable implementation error.
+
 9. Required modules
 
 config.py
@@ -446,6 +515,17 @@ plotting.py
 
 Belief trajectories, prototype trajectories, recovery plots.
 
+experiment_registry.py
+
+Experiment registry, canonical manifests, and helpers for fair baseline comparison.
+
+baseline adapters under esl/baselines/
+
+Thin wrappers exposing a common interface for ESL-compatible baseline training, evaluation, and summary export.
+
+third-party baseline sources under third_party/ or external/
+
+Pinned external baseline code snapshots kept separate from ESL core modules.
 ⸻
 
 10. Required outputs
@@ -458,6 +538,11 @@ For every run save:
 	•	reward trajectory CSV
 	•	summary metrics JSON
 	•	plots
+	•	baseline manifest JSON for every external baseline run
+	•	source provenance record (URL, commit/hash if available, local patch note)
+	•	canonical summary export compatible with ESL experiment aggregation
+	•	milestone status report markdown after each completed milestone
+	•	manuscript-bundle-ready copies of final figures/tables/manifests
 
 All outputs must be organized by timestamped run folder.
 
@@ -466,6 +551,8 @@ All outputs must be organized by timestamped run folder.
 11. Required metrics
 
 **Primary recovery metric (MVP):** **matched cross-entropy** — after Hungarian matching of learned prototypes to true behavioral types, sum (or report) cross-entropy between each true type’s action distribution and the matched prototype’s $\mathrm{softmax}(\theta_k)$ (with clipped $q$ inside the CE formula for numerical safety, as in evaluation code).
+
+**Offline baselines (comparison only):** The package **`esl/baselines/`** fits static K-means, fuzzy c-means, and Bernoulli mixture EM on an optional **`interaction_observations.csv`** log (same `w` mask as ESL; no sequential beliefs). Same **MCE** metric via `esl.metrics.mce_value`. Fairness statement and feature definitions: **`docs/baselines/BASELINE_PROTOCOL.md`**.
 
 Recovery metrics (exported under the **canonical field names** below)
 	•	`belief_argmax_accuracy` — belief accuracy vs true type (under the current matching)
@@ -508,8 +595,38 @@ Implement at least:
 	5.	symmetric init run does not separate prototypes
 	6.	asymmetric init run does separate prototypes
 	7.	prototype recovery improves over time in simple 2-type setting
+	8.	experiment manifest schema validates for ESL and baseline runs
+	9.	milestone artifact bundle is created for a smoke-test run
+	10.	freeze-Theta self-consistency runner preserves prototype parameters exactly during rollout
 
 ⸻
+
+13A. Milestone-gated, test-driven execution protocol
+
+The implementation and experimental phase must proceed in strictly gated milestones.
+
+Milestone rule:
+	•	Each milestone begins with tests or validation checks for the functionality being added.
+	•	Each milestone must produce a short status report including:
+		•	what was implemented,
+		•	which tests passed or failed,
+		•	which artifacts were produced,
+		•	any deviations from the PRD or paper,
+		•	recommended next step.
+	•	After producing that report, Cursor must stop and wait for explicit user confirmation before proceeding.
+	•	If a milestone fails tests or produces ambiguous outputs, the next milestone must not begin.
+
+Required milestone report fields:
+	•	Milestone name
+	•	Status: PASS / PARTIAL / FAIL
+	•	Files added or changed
+	•	Tests executed
+	•	Artifacts generated
+	•	Open issues / caveats
+	•	Paper-faithfulness check
+	•	Ready-for-next-step recommendation
+
+This gating rule is mandatory for both ESL core functionality and baseline onboarding.
 
 14. Stopping rule
 
@@ -522,6 +639,65 @@ Optional diagnostics:
 But do not rely on early stopping in v1 experiments.
 
 ⸻
+
+
+14A. Baseline implementation plan for the validation phase
+
+The experimental phase should not begin with from-scratch baseline engineering. Instead, use the following staged onboarding plan:
+
+Stage B1 — Baseline acquisition
+- Create a dedicated baseline source directory (e.g., third_party/).
+- Add subdirectories or pinned source snapshots for:
+  - PPO-PyTorch
+  - M-FOS supplementary src
+  - MBOM official code
+  - opponent-model reference code
+- Record source URLs, commit hashes if available, and local patch notes.
+
+Stage B2 — Adapter wrappers
+- Implement thin wrappers in esl/baselines/ for each external baseline.
+- Wrappers must expose a common runner interface compatible with the ESL experiment registry and output schema.
+- Wrappers must not change ESL core trainer semantics.
+
+Stage B3 — Smoke-test comparison
+- For each baseline, run one tiny recovery-mode job in a repeated 2-action matrix game.
+- Confirm that:
+  - training executes end-to-end or fails with an explicit incompatibility reason,
+  - outputs can be parsed,
+  - summary metrics are emitted,
+  - runtime is logged.
+
+Stage B4 — Fairness validation
+- Verify horizon matching, evaluation population matching, and observability-mask matching against ESL.
+- Verify that baseline-specific hyperparameters are recorded separately from ESL hyperparameters.
+- If the official code cannot be used directly, freeze a minimal adapted version and document the exact deviations.
+
+Only after Stages B1--B4 are complete should full paper sweeps be launched.
+
+14B. Manuscript bundle requirement
+
+At the end of the experimental phase, all paper-facing artifacts must be collected into a single reproducible manuscript bundle.
+
+Create a directory of the form:
+- manuscript_bundle/
+
+Required contents:
+- manuscript_bundle/figures/                # final paper figures in PNG/PDF
+- manuscript_bundle/tables/                 # CSV + LaTeX-ready tables
+- manuscript_bundle/configs/                # frozen configs used for paper runs
+- manuscript_bundle/manifests/              # manifests for all included runs
+- manuscript_bundle/metrics/                # aggregated CSV/JSON summaries
+- manuscript_bundle/reports/                # milestone reports + final experiment report
+- manuscript_bundle/provenance/             # source URLs, commits/hashes, local patch notes
+- manuscript_bundle/README.md               # how to regenerate the bundle
+- manuscript_bundle/EXPERIMENT_REPORT.md    # final summary of results and caveats
+
+Bundling rules:
+	•	Only include artifacts that correspond to the final paper protocol or explicitly labeled appendix-only analyses.
+	•	Every figure in the bundle must be traceable to a manifest and a config.
+	•	Every table in the bundle must be reproducible from saved metrics files.
+	•	If a figure depends on manual curation, that must be recorded explicitly in the bundle README.
+	•	The bundle must be sufficient for manuscript assembly without hunting across ad hoc run folders.
 
 15. Required first experiments
 
@@ -560,12 +736,19 @@ Do enforce
 	•	assertions on all probabilities
 	•	permutation-invariant evaluation
 	•	explicit experiment mode separation
+	•	official baseline code first where available
+	•	thin wrappers instead of deep rewrites for external baselines
+	•	explicit documentation of baseline incompatibilities or adaptations
+	•	matched evaluation protocol across ESL and baselines
+	•	stop-after-milestone reporting and explicit confirmation before continuation
+	•	manuscript bundle assembly as a first-class deliverable, not an afterthought
+	•	paper-faithfulness check in every milestone report
 
 ⸻
 
 17. Cursor implementation brief
 
-Build a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but implement recovery mode first. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then **Euclidean projection** onto $\Delta_K^\delta$ (§5.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics.
+Build and maintain a minimal Python implementation of Epistemic Social Learning (ESL) for repeated 2-action matrix games, and complete the experiment-validation layer around it. Support two modes: (A) recovery mode with fixed hidden opponent policies and (B) adaptation mode with logit best-response learners, but keep recovery mode as the first correctness target. Use K latent prototypes, each parameterized by action logits theta_k in R^{|A|}. Define signals as observed opponent actions. Use likelihood L_k(s=a | theta_k) = softmax(theta_k)[a]. Maintain pairwise beliefs b_{i->j} over prototypes. Update beliefs with Bayes rule, then Euclidean projection onto $\Delta_K^\delta$ (§5.8). Update prototype parameters by stochastic gradient ascent on the belief-weighted batch log-likelihood using gradient e_s - softmax(theta_k). Use sparse or full observability through W_{ij,t}. Use repeated Prisoner’s Dilemma as the first environment. Implement stable softmax, deterministic seeding, permutation-invariant prototype matching, unit tests for gradients and belief updates, and logging of prototype trajectories, belief trajectories, and recovery metrics. For baseline comparison, prefer official or author-released implementations where available, integrate them under a dedicated third_party/ (or equivalent) folder, and expose them through thin adapters in esl/baselines/ rather than reimplementing complex baselines from scratch. Work in milestone-gated fashion: after each milestone, emit a concise status report with tests, outputs, caveats, and paper-faithfulness notes, then stop for user confirmation before moving on. Ensure all final paper artifacts are collected into a manuscript_bundle/ directory.
 
 ⸻
 

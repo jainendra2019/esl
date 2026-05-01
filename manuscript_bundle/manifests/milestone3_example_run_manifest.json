@@ -1,0 +1,9 @@
+{
+  "clustering_only_baselines": true,
+  "include_baselines": true,
+  "num_rounds_requested": 2,
+  "p_obs": 1.0,
+  "preset": "sparse_pobs_sweep",
+  "seed": 0,
+  "variant": "p_obs_1p0"
+}

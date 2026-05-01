@@ -1,0 +1,28 @@
+{
+  "esl": {
+    "neurips_preset": null,
+    "variant": "inline_smoke"
+  },
+  "expected_outputs": {
+    "optional_relative": [
+      "prototype_trajectory.csv",
+      "belief_trajectory.csv",
+      "reward_trajectory.csv",
+      "run_manifest.json",
+      "interaction_observations.csv",
+      "observation_manifest.json"
+    ],
+    "required_relative": [
+      "config.json",
+      "manifest.json",
+      "summary_metrics.json",
+      "metrics_trajectory.csv"
+    ]
+  },
+  "experiment_id": "milestone.smoke_lock",
+  "output_convention": "esl_canonical_v1",
+  "run_kind": "esl",
+  "schema_version": 1,
+  "seed": 42,
+  "smoke": true
+}

@@ -1,0 +1,1 @@
+Belief-coupled latent opponent models improve long-run payoffs when feedback about others is limited.

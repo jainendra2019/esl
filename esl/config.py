@@ -11,6 +11,7 @@ import numpy as np
 
 ExperimentMode = Literal["recovery", "adaptation"]
 InteractionPairsLaw = Literal["uniform"]
+PayoffGame = Literal["prisoners_dilemma", "matching_pennies"]
 
 # Paper / debug: fixed (observer, target) and explicit θ (list-of-lists JSON-serializable).
 ForceOrderedPair = tuple[int, int] | None
@@ -25,6 +26,9 @@ class ESLConfig:
     mode: ExperimentMode = "recovery"
     # Baseline / ablation: no belief updates, no batching, no prototype SGD (uniform b stays; θ fixed).
     learning_frozen: bool = False
+    # When False, beliefs stay at their initialization (uniform) but batch rows still drive prototype SGD.
+    # Ignored when ``learning_frozen`` is True.
+    belief_updates_enabled: bool = True
     # Beliefs update and batch accumulates, but prototype logits never apply SGD (slow scale off).
     freeze_prototype_parameters: bool = False
     # If set, every round uses this ordered pair (i observes j) instead of sampling.
@@ -33,9 +37,20 @@ class ESLConfig:
     prototype_logits_override: PrototypeLogitsOverride = None
     # If set, length must equal num_agents; overrides cyclic true-type assignment (debug / hand traces).
     force_agent_true_types: list[int] | None = None
+    # Optional per-agent indices into ``games.HIDDEN_POLICY_BUILDERS`` for fixed policies.
+    # When ``None``, hidden policies follow ``true_types`` (``force_agent_true_types`` or cyclic).
+    # Used e.g. when ``num_prototypes=1`` for ablations but the population is still AC/AD heterogeneous.
+    force_hidden_policy_by_agent: list[int] | None = None
+    # Adaptation only: agents in this list use ESL logit best response; others use fixed
+    # ``HiddenPolicy`` from ``force_agent_true_types`` (or cyclic assignment). If ``None``,
+    # all agents use ESL in adaptation mode (legacy behavior).
+    adaptation_esl_agent_indices: list[int] | None = None
 
     num_agents: int = 4
     num_prototypes: int = 2
+    # If set, ``true_type_probs`` / MCE / matching use this many nominal true types (rows of
+    # ``games.true_type_distributions``) even when ``num_prototypes`` (learned K) differs.
+    metrics_num_true_types: int | None = None
     num_actions: int = 2
 
     delta_simplex: float = 1e-4
@@ -83,6 +98,9 @@ class ESLConfig:
     # Summary metrics (entropy / argmax accuracy) are still computed from in-memory beliefs.
     log_beliefs_tensor: bool = True
 
+    # Append interaction_observations.csv (+ manifest) for offline baselines (same w, a_i, a_j as ESL).
+    log_interaction_observations: bool = False
+
     observability: Literal["full", "sparse"] = "full"
     p_obs: float = 1.0
 
@@ -96,6 +114,7 @@ class ESLConfig:
     pd_r: float = 3.0
     pd_p: float = 1.0
     pd_s: float = 0.0
+    payoff_game: PayoffGame = "prisoners_dilemma"
 
     def validate(self) -> None:
         if self.num_actions != 2:
@@ -143,6 +162,36 @@ class ESLConfig:
             for t in self.force_agent_true_types:
                 if not (0 <= int(t) < self.num_prototypes):
                     raise ValueError("force_agent_true_types entries must be in [0, num_prototypes)")
+        if self.adaptation_esl_agent_indices is not None:
+            if self.mode != "adaptation":
+                raise ValueError("adaptation_esl_agent_indices is only valid when mode='adaptation'")
+            seen: set[int] = set()
+            for raw in self.adaptation_esl_agent_indices:
+                idx = int(raw)
+                if not (0 <= idx < self.num_agents):
+                    raise ValueError(
+                        f"adaptation_esl_agent_indices must be in [0, num_agents); got {idx}"
+                    )
+                if idx in seen:
+                    raise ValueError("adaptation_esl_agent_indices must not contain duplicates")
+                seen.add(idx)
+        if self.metrics_num_true_types is not None:
+            if int(self.metrics_num_true_types) < 1:
+                raise ValueError("metrics_num_true_types must be >= 1 when set")
+        if self.payoff_game not in ("prisoners_dilemma", "matching_pennies"):
+            raise ValueError("payoff_game must be 'prisoners_dilemma' or 'matching_pennies'")
+        if self.force_hidden_policy_by_agent is not None:
+            if len(self.force_hidden_policy_by_agent) != self.num_agents:
+                raise ValueError("force_hidden_policy_by_agent length must equal num_agents")
+            from esl import games as _games_for_val
+
+            nb = len(_games_for_val.HIDDEN_POLICY_BUILDERS)
+            for h in self.force_hidden_policy_by_agent:
+                hi = int(h)
+                if not (0 <= hi < nb):
+                    raise ValueError(
+                        f"force_hidden_policy_by_agent entries must be in [0, {nb}); got {hi}"
+                    )
         if self.stop_on_convergence:
             if self.num_prototypes < 2:
                 raise ValueError("stop_on_convergence requires num_prototypes >= 2")

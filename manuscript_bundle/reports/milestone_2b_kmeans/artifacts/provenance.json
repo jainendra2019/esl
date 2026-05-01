@@ -1,0 +1,16 @@
+{
+  "notes": "No third-party train loop; features and MCE mapping per docs/baselines/BASELINE_PROTOCOL.md.",
+  "sources": [
+    {
+      "commit": null,
+      "local_path": "esl/baselines",
+      "modules": [
+        "esl.baselines.kmeans_actions",
+        "esl.baselines.features_conditional",
+        "esl.baselines.evaluate"
+      ],
+      "name": "ESL in-project static clustering",
+      "url": "https://github.com/jainendra2019/esl"
+    }
+  ]
+}

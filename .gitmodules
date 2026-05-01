@@ -1,0 +1,12 @@
+[submodule "third_party/PPO-PyTorch"]
+	path = third_party/PPO-PyTorch
+	url = https://github.com/nikhilbarhate99/PPO-PyTorch.git
+[submodule "third_party/Model-Free-Opponent-Shaping"]
+	path = third_party/Model-Free-Opponent-Shaping
+	url = https://github.com/luchris429/Model-Free-Opponent-Shaping.git
+[submodule "third_party/MBOM"]
+	path = third_party/MBOM
+	url = https://github.com/PKU-RL/MBOM.git
+[submodule "third_party/opponent"]
+	path = third_party/opponent
+	url = https://github.com/hhexiy/opponent.git

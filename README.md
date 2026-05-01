@@ -128,6 +128,37 @@ python3 -m esl.experiment_two_type_separation \
 python3 -m esl.hand_trace --help
 ```
 
+**Offline baselines** (K-means, fuzzy c-means, conditional / marginal Bernoulli EM, oracle MCE) on a finished run:
+
+1. Enable logging: set **`log_interaction_observations=True`** in `ESLConfig` (writes `interaction_observations.csv` + `observation_manifest.json` next to `config.json`).
+2. Run:
+
+```bash
+python3 -m esl.baselines run-all --run-dir runs/your_run/subfolder
+```
+
+Writes **`baselines/baselines_summary.json`** (MCE, wall-clock, EM iterations). Protocol and fairness statement: **`docs/baselines/BASELINE_PROTOCOL.md`**.
+
+Bar chart from a summary JSON under `baselines/`:
+
+```bash
+# Prefix-matched budget (recommended for main-text messaging)
+python3 -m esl.baselines run-all --run-dir runs/your_run --prefix-max-round 400
+python3 -m esl.baselines plot --run-dir runs/your_run \
+  --summary baselines_summary_prefix_round_400.json
+
+# Full-log transductive diagnostic (appendix / sanity)
+python3 -m esl.baselines plot --run-dir runs/your_run
+# optional: --include-oracle  --annotation none|minimal|full
+```
+
+**Regenerated docs figures** (run from repo root with `PYTHONPATH=.` or editable install):
+
+- **`docs/baselines/baseline_mce_comparison.png`** — Protocol **P** (prefix-matched; default fraction of horizon in script).
+- **`docs/baselines/baseline_transductive_diagnostic.png`** — Protocol **T** (full-log batch refits vs final ESL θ).
+
+Command: **`./scripts/generate_baseline_comparison_figure.sh`** (~2200 rounds by default; **`--quick`** for smoke only).
+
 **Post-hoc figures** (after a run exists; beliefs use Euclidean projection onto $\Delta_K^\delta$ throughout):
 
 ```bash
@@ -176,15 +207,35 @@ python3 -m esl.experiments run --preset recovery_fixed_prototype_baseline --seed
 
 **Sweep helper** (sequential full runs — long): see **`scripts/run_neurips_sweeps.sh`**.
 
-**Small sparse sweep** (\(p_{\mathrm{obs}}\in\{1.0,0.5,0.3,0.2\}\), same flagship geometry) with **final matched CE vs \(p_{\mathrm{obs}}\)** figure:
+**Small sparse sweep** (\(p_{\mathrm{obs}}\in\{1.0,0.5,0.3,0.2\}\), same flagship geometry):
 
 ```bash
 python3 -m esl.experiments sparse-pobs-sweep --rounds 3000 --out-root runs/sparse_pobs_sweep
-# writes runs/sparse_pobs_summary.csv + runs/final_ce_vs_p_obs.png
-python3 -m esl.experiments sparse-pobs-sweep --plot-only --out-root runs/sparse_pobs_sweep  # refresh PNG only
+# writes sparse_pobs_summary.csv (ESL + belief + EM/K-means MCE columns),
+#   final_ce_vs_p_obs.png, sparse_pobs_mce_belief.png
+# --no-baselines: skip observation log + offline baselines (faster CI / debug)
+python3 -m esl.experiments sparse-pobs-sweep --plot-only --out-root runs/sparse_pobs_sweep
 ```
 
-Use **`--rounds 10000`** for paper-length curves. *Rounds-to-convergence vs \(p_{\mathrm{obs}}\)* is not plotted here (runs use fixed horizons unless you enable `stop_on_convergence` in a forked driver).
+**Prefix learning curve** (ESL θ vs batch baselines at increasing round prefixes; needs `log_interaction_observations` on the run):
+
+```bash
+python3 -m esl.experiments prefix-learning-curve --run-dir runs/your_logged_run
+```
+
+**Ablation ladder** (full ESL vs `freeze_prototype_parameters` vs `learning_frozen`):
+
+```bash
+python3 -m esl.experiments ablation-ladder --out-root runs/ablation_ladder --rounds 200
+```
+
+**Adaptation payoff sweep** (mean payoff vs `adaptation_lambda`; ESL-only figure—see module docstring):
+
+```bash
+python3 -m esl.experiments adaptation-payoff-sweep --out-root runs/adaptation_payoff_sweep --rounds 120
+```
+
+Use **`--rounds 10000`** on sparse sweep for paper-length curves. *Rounds-to-convergence vs \(p_{\mathrm{obs}}\)* is not plotted here unless you enable `stop_on_convergence` in a custom driver.
 
 **Aggregate CSV** (schema v1) over completed runs under a root:
 
@@ -197,6 +248,8 @@ python3 -m esl.experiments aggregate runs/neurips -o runs/neurips/_aggregates/su
 ```bash
 python3 -m esl.plot_neurips flagship runs/neurips/recovery_flagship/long/seed_42 \
   -o runs/neurips/_figures/flagship_panels.png
+python3 -m esl.plot_neurips belief-acc runs/neurips/recovery_flagship/long/seed_42 \
+  -o runs/neurips/_figures/belief_argmax_contribution.png
 python3 -m esl.plot_neurips robustness runs/neurips/_aggregates/summary_all_runs.csv \
   -o runs/neurips/_figures/robustness.png
 python3 -m esl.plot_neurips compare runs/neurips/recovery_failure_case/weak/seed_42 \
