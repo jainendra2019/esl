@@ -4,6 +4,10 @@ Code and frozen numerical evidence for the NeurIPS 2026 paper:
 
 > **Epistemic Social Learning: Latent Behavioral Structure under Endogenous Multi-Agent Interaction**
 
+**Authors:** Jainendra Shukla, Dhruv Jaiswal, Divyanshi Beniwal, and Kiriti Kanjilal.  
+**Affiliation:** IIIT Delhi, New Delhi, India.  
+**Contact:** {jainendra,dhruv23200,divyanshi23209,kanjilal}@iiitd.ac.in.
+
 ESL is a two-timescale learner for repeated multi-agent interaction. Fast Bayesian beliefs over shared behavioral prototypes are coupled to a slower prototype update driven by belief-weighted observations. Because the learner’s actions shape the data it sees, the observation process is endogenous.
 
 This repository is a camera-ready research release: the accepted algorithm, the committed twelve-game benchmark, experiment drivers, and compact cell-level evidence needed to recompute the published tables and figures.
@@ -154,4 +158,15 @@ See `configs/README.md` for protocol locks (seeds, H=100, switch interval, no re
 
 This software is released under the MIT License (see `LICENSE`).
 
-Please cite the NeurIPS 2026 paper. A `CITATION.cff` file is included. A DOI and proceedings URL will be added when they are assigned.
+**If you use this software, the benchmark, or its results, please cite our NeurIPS 2026 paper:**
+
+```bibtex
+@inproceedings{shukla2026epistemic,
+  title     = {Epistemic Social Learning: Latent Behavioral Structure under Endogenous Multi-Agent Interaction},
+  author    = {Shukla, Jainendra and Jaiswal, Dhruv and Beniwal, Divyanshi and Kanjilal, Kiriti},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026}
+}
+```
+
+GitHub's citation feature also uses [`CITATION.cff`](CITATION.cff). A DOI and proceedings URL will be added when assigned.
