@@ -10,5 +10,5 @@
     "coordination_A2": 1.5430420722652731,
     "coordination_A3": 0.8277621663576695
   },
-  "manifest": "/Users/jainendra/Documents/Cursor/ESL/benchmark/manifest.json"
+  "manifest": "benchmark/manifest.json"
 }

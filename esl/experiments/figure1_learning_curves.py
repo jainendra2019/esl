@@ -99,6 +99,11 @@ def _sample_binary(rng: np.random.Generator, probs: np.ndarray) -> int:
 
 
 def _task_payoff(task: MatrixGameTask) -> games.PayoffMatrices:
+    if getattr(task, "payoff_row", None) is not None:
+        row = np.asarray(task.payoff_row, dtype=np.float64)
+        col_src = task.payoff_col if getattr(task, "payoff_col", None) is not None else task.payoff_row
+        col = np.asarray(col_src, dtype=np.float64)
+        return games.PayoffMatrices(row=row, col=col)
     if task.payoff_game == "matching_pennies":
         return games.matching_pennies()
 

@@ -1,36 +1,17 @@
-# Local experiment outputs — ignore by default; canonical flagship runs are tracked
-runs/*
-!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed42/
-!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed42/**
-!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed43/
-!runs/recovery_best_bal20_R10000_L5to15_Q15_lr22_initnoise005_seed43/**
-
-# Scratch / temp experiment dirs
-_tmp*/
-outputs/
-manuscript_bundle/reports/*_timeseries.csv
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
 .venv/
 venv/
-.env
-
-# Testing / tooling
-.pytest_cache/
-.coverage
-htmlcov/
+__pycache__/
+*.py[cod]
 *.egg-info/
 dist/
 build/
-
-# OS / editor
+.pytest_cache/
+.coverage
+htmlcov/
 .DS_Store
-Thumbs.db
-*.swp
 .idea/
 .vscode/
+.env
+outputs/
+_tmp*/
+*.swp

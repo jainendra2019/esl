@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use this software, please cite the NeurIPS 2026 paper.
+title: "Epistemic Social Learning: Latent Behavioral Structure under Endogenous Multi-Agent Interaction"
+version: "1.0.0"
+license: MIT
+repository-code: "https://github.com/jainendra2019/esl"
+authors:
+  - family-names: Jainendra
+    email: jainendra@iiitd.ac.in
+preferred-citation:
+  type: conference-paper
+  title: "Epistemic Social Learning: Latent Behavioral Structure under Endogenous Multi-Agent Interaction"
+  authors:
+    - family-names: Jainendra
+      email: jainendra@iiitd.ac.in
+  year: 2026
+  conference:
+    name: "Advances in Neural Information Processing Systems"
+  notes: "NeurIPS 2026. Camera-ready code release. DOI and proceedings URL are not assigned in this repository."

@@ -1,0 +1,111 @@
+{
+  "protocol_version": "neurips2026-flagship-3x3-v1",
+  "description": "Accepted twelve-game 3x3 benchmark. Load committed JSON; do not resample.",
+  "generator_module": "esl.res.benchmark.generate_3x3_suite",
+  "generator_seed": 20260728,
+  "per_family": 4,
+  "no_resampling": true,
+  "seed_offsets": {
+    "cell_method_rng": 7919,
+    "observation_rng": 4242
+  },
+  "evaluation_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "n_instances": 12,
+  "instances": [
+    {
+      "instance_id": "coop3_01",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_01.json",
+      "sha256": "717799e725ba820bceb412c726c17d47700d3fb4b45593955a2154eb66a19f85"
+    },
+    {
+      "instance_id": "coop3_02",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_02.json",
+      "sha256": "a4d3566273bfd23ada8fe7b2285646bdfb1a9dfa3ac63e6d3e68ef7f644a2140"
+    },
+    {
+      "instance_id": "coop3_03",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_03.json",
+      "sha256": "26f55addb6e17eba2b1abf01b005456f050f2e70a9186772d93b5934864118ec"
+    },
+    {
+      "instance_id": "coop3_04",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_04.json",
+      "sha256": "cbcc2256faabbcbe6953afc80d73b7061ea79638dac28595831415ee2a302ebf"
+    },
+    {
+      "instance_id": "coord3_01",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_01.json",
+      "sha256": "41f1bf2f3666f0daa0807146ceb92b608555d24ca8bd390f204823c0fcb1755f"
+    },
+    {
+      "instance_id": "coord3_02",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_02.json",
+      "sha256": "97551a01c5a5f8947245af1031d8adae0c15b3a9fa294f4251ba8c1449efc4f6"
+    },
+    {
+      "instance_id": "coord3_03",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_03.json",
+      "sha256": "a5cdb6fc0d9326fbf844f4af0d4b39736957ed29efd6c10501f6a5206b694e0a"
+    },
+    {
+      "instance_id": "coord3_04",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_04.json",
+      "sha256": "05423a6832da9205fe12bf7db89caf69284285666a1b68ba727b88d1644b0e06"
+    },
+    {
+      "instance_id": "adv3_01",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_01.json",
+      "sha256": "9ae35578b91b42620d5eb6666a622379663e78eb2e95b22cac75619cc63161dd"
+    },
+    {
+      "instance_id": "adv3_02",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_02.json",
+      "sha256": "9d53001d8bfacb9477ffcea51856a1055f3635672cdf518879534aa15b360b8e"
+    },
+    {
+      "instance_id": "adv3_03",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_03.json",
+      "sha256": "bd517cd261e2686c05d6a48550c8e483507a5f1b55df1cb5b323647019d3a692"
+    },
+    {
+      "instance_id": "adv3_04",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_04.json",
+      "sha256": "c34600f840c1b62b9648de831c9d9599d7e1a611289033cb47c2d3aed3245386"
+    }
+  ]
+}

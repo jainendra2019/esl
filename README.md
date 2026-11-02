@@ -1,292 +1,157 @@
-# ESL — Epistemic Social Learning
+# Epistemic Social Learning (ESL)
 
-Code for **multi-agent belief dynamics** and **slow prototype (latent-type) learning** in repeated 2-action games. ESL is a **feedback-coupled** system: observations depend on actions driven by **current** beliefs and (in adaptation mode) best responses—so data are **endogenous**, not i.i.d. latent-variable samples. Beliefs update every environmental step; prototype logits update on a slower schedule with **averaged batch gradients** over full interaction batches (two-timescale stochastic approximation; see **PRD.md** §3, §5, §8 and **ALGORITHM.md**).
+Code and frozen numerical evidence for the NeurIPS 2026 paper:
 
-**Repository:** [github.com/jainendra2019/esl](https://github.com/jainendra2019/esl)
+> **Epistemic Social Learning: Latent Behavioral Structure under Endogenous Multi-Agent Interaction**
 
-## Features
+ESL is a two-timescale learner for repeated multi-agent interaction. Fast Bayesian beliefs over shared behavioral prototypes are coupled to a slower prototype update driven by belief-weighted observations. Because the learner’s actions shape the data it sees, the observation process is endogenous.
 
-- **Recovery mode:** fixed hidden policies (e.g. Always Cooperate / Always Defect), random ordered-pair observations, Bayes updates followed by Euclidean projection onto the δ-floored simplex Δ_K^δ.
-- **Interaction protocol:** each environment round samples \(L_t\) distinct ordered pairs without replacement (`interaction_pairs_min` / `max`); prototype SGD runs every **\(Q\)** interaction events (`prototype_update_every` after `validate()`), not once per round when \(L_t>1\).
-- **Metrics:** Hungarian-matched cross-entropy vs. true policies, belief entropy, argmax accuracy.
-- **Paper-style experiments:** two-type separation suite (`main` / `symmetric` / `freeze prototype`) plus plotting helpers for observability and mechanism figures.
-- **Tests:** verification (math / algorithm), validation (end-to-end), edge cases; heavy checks marked **`slow`**.
+This repository is a camera-ready research release: the accepted algorithm, the committed twelve-game benchmark, experiment drivers, and compact cell-level evidence needed to recompute the published tables and figures.
 
-## Requirements
+## Repository contents
 
-- Python 3.10+ recommended (3.13 works in CI-style local runs).
-- Dependencies: `numpy`, `scipy`, `matplotlib`; `pytest` for tests.
+| Path | Role |
+|---|---|
+| `esl/` | ESL core, beliefs, prototypes, metrics, and experiment drivers |
+| `esl/res/` | Twelve-game (3×3) evaluation protocol and baselines |
+| `benchmark/` | Frozen payoff matrices (load these; do not resample) |
+| `evidence/` | Compact cell-level CSVs used for the accepted numbers |
+| `scripts/` | Verification, table/figure regeneration, and rerun helpers |
+| `tests/` | Protocol, metric, and numerical-regression tests |
+| `third_party/PPO-PyTorch/` | Vendored official `PPO.py` (MIT) for the PPO baseline |
 
-## Install
+## Installation
+
+Python 3.10–3.13. The accepted numerical artifacts were produced with **NumPy 2.2.6** and **SciPy 1.16.0**.
 
 ```bash
 git clone https://github.com/jainendra2019/esl.git
 cd esl
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-pip install -e .              # editable install of the `esl` package (optional)
+python -m pip install -U pip
+python -m pip install -e .
+python -m pip install -r requirements.txt
 ```
 
-## Tests
+Optional, only if you rerun the PPO baseline:
 
 ```bash
-# Fast loop (excludes @pytest.mark.slow)
-pytest -q
-
-# Include long two-type separation validations
-pytest -q --runslow
+python -m pip install torch
 ```
 
-See **`tests/TEST_PLAN.md`** for the verification vs. validation map.
+Table and figure regeneration do not require PyTorch.
 
-## Quick start (~5 minutes the first time)
+## Quick verification
 
-Rough budget from a fresh clone: **venv + pip ~1–3 min**, **`pytest -q` ~30–60 s**, **smoke experiment ~20–50 s** (three conditions × 50 rounds + matplotlib). After dependencies are installed, the test + smoke loop is usually **~1–2 minutes**.
-
-From the repo root, with your venv active:
+Modest CPU. Should finish in a few minutes.
 
 ```bash
-# 1) Fast test suite (excludes @pytest.mark.slow)
-pytest -q
-
-# 2) Smoke run: three conditions (main / symmetric / freeze prototype) + PNGs
-python3 -m esl.experiment_two_type_separation \
-  --out runs/quickstart_smoke \
-  --rounds 50 \
-  --m 5 \
-  --seed 42 \
-  --lr-scale 18 \
-  --obs-prob 1.0
+python -m pytest -q
+python scripts/verify_release.py
 ```
 
-**CLI essentials** (`esl.experiment_two_type_separation`; **`--out` is required**):
+This runs unit/protocol tests, regenerates the twelve 3×3 matrices in memory and compares them to the committed files, checks evidence hashes, and runs a 40-step ESL smoke cell.
 
-| Flag | Role | Quick-start value |
-|------|------|-------------------|
-| `--out` | Output root (created if missing) | `runs/quickstart_smoke` |
-| `--rounds` | Environment rounds per condition (`num_rounds`) | `50` smoke; `250`+ for smoother curves |
-| `--m` | `prototype_update_every` → **\(Q\)** in config (prototype step every **\(Q\) interaction events**). This driver uses the default **one ordered pair per round**, so **\(Q\)** equals “every *m* rounds” here. | `5` |
-| `--seed` | RNG seed | `42` |
-| `--lr-scale` | `prototype_lr_scale` for **main** and **freeze** conditions (symmetric baseline uses `1.0`) | `18` |
-| `--obs-prob` | Observation probability \(p_{\mathrm{obs}}\) (`1.0` = full observability) | `1.0` |
-| `--n-agents` | Agent count (default **6** = three “always C” + three “always D” when \(N=6\), \(K=2\)) | default `6` |
-| `--n-prototypes` | \(K\) | default `2` |
-| `--delta` | Simplex floor \(\delta\) (`delta_simplex`) | default `1e-4` |
-| `--no-plots` | Skip figure PNGs; metrics/CSVs only | — |
-| `--until-converged` | Stop early when convergence tests pass; `--rounds` is **T_max** | optional; tune with `--conv-window`, `--conv-eps-*` |
+## Reproduce reported tables and figures
 
-For **multi-pair rounds** (\(L_t>1\)) or flagship-style recovery, configure `ESLConfig` in Python or another driver; this experiment script keeps the default **one random pair per round** so the table above stays accurate.
-
-**Optional faster demo** (single recovery or adaptation run, default 200 rounds, writes under `runs/...` if you pass `--out`):
+These commands **do not** rerun the expensive simulations. They recompute published summaries from `evidence/`.
 
 ```bash
-python3 -m esl --rounds 80 --out runs/esl_demo
+python scripts/reproduce_tables.py
+python scripts/reproduce_figures.py
 ```
 
-**You should see** (under `runs/quickstart_smoke/` after step 2):
+Outputs:
 
-| Path | What it is |
-|------|------------|
-| `experiment_manifest.json` | Run settings (`rounds`, `m`, `seed`, `lr_scale`, `obs_prob`, …) |
-| `figure_prototype_separation.png` | Three-way prototype dynamics (+ separation panel) |
-| `figure_matched_ce.png`, `figure_belief_entropy.png` | Matched CE and mean entropy |
-| `main/summary_metrics.json` | Final metrics for the **main** condition |
-| `main/`, `symmetric/`, `freeze_proto_baseline/` | Per-condition CSVs + `config.json` |
+- `outputs/tables/` — method, per-game, K-sensitivity, OMD, ablation, and sensitivity CSVs
+- `outputs/figures/` — PDF/PNG bar and line plots from those tables
 
-Figures will look **noisy / incomplete** at 50 rounds; they are only for a **fast pipeline check**. For smoother curves, use **`--rounds 250`** (or 500+) as in **Main commands** below.
+Accepted flagship ESL means (n=120 game–seed cells, λ=2):
 
-### One-shot script
+| Metric | Mean |
+|---|---:|
+| PSR | 162.97 |
+| DPR | 106.67 |
+| LTE | 3.225421 (display 3.23) |
+
+PSR and DPR use the inclusive post-switch window `0 ≤ τ ≤ H`. LTE uses a time-varying Hungarian alignment of pre-observation beliefs and averages over `τ < H`.
+
+ESL has the lowest PSR point estimate among {ESL, Fixed-K Bayesian, SA-FP, Online EM} on **8 of 12** games, and a lower PSR point estimate than SA-FP on **11 of 12** games. These are distinct claims.
+
+The held-out OMD comparison is a **separate** protocol (development seeds 0–2, evaluation seeds 3–9, n=84, ESL λ=10, OMD η=1.0) and is not mixed with the headline λ=2 flagship.
+
+## Rerun experiments from scratch
+
+Full paper-scale runs are CPU-heavy (twelve games × ten seeds × methods × T=1000). Wall-clock time is hours to days depending on cores and whether PPO/torch is included. Cross-platform bitwise identity of new simulation output is **not** claimed; accepted numbers are those in `evidence/`.
+
+Headline twelve-game adaptation (λ=2; includes ESL, Fixed-K, SA-FP, Online EM; PPO if torch is installed):
 
 ```bash
-chmod +x scripts/reproduce_paper_figures.sh   # once
-./scripts/reproduce_paper_figures.sh
+python -m esl.res --num-actions 3 --full --out-dir outputs/flagship
 ```
 
-Optional **longer** bundle (main @ 250 rounds + mechanism plot @ `p_obs=0.5`, ~400 rounds):
+Held-out OMD/MWU bake-off:
 
 ```bash
-ESL_FULL_REPRO=1 ./scripts/reproduce_paper_figures.sh
+python scripts/run_omd_clean_psr.py
 ```
 
-## Main commands
-
-**Two-type separation experiment** (three conditions, CSV/JSON artifacts, figures):
+Matched-component ablations and α / batch-size sweeps:
 
 ```bash
-python3 -m esl.experiment_two_type_separation \
-  --rounds 500 --m 5 --seed 42 --lr-scale 18 --obs-prob 1.0 \
-  --out runs/my_run
+python -m esl.res.ablation_a3 ablation --out-dir outputs/ablation_a3
+python -m esl.res.ablation_a3 alpha --out-dir outputs/alpha_sensitivity
+python -m esl.res.ablation_a3 batch --out-dir outputs/batch_sensitivity
 ```
 
-- **`--out`** is required. Use **`--no-plots`** for metrics only.
-- Outputs under `runs/<name>/`: `main/`, `symmetric/`, `freeze_proto_baseline/`, `experiment_manifest.json`, and figure PNGs unless disabled.
-
-**Hand trace** (fixed-θ sanity check, CSV + optional cooperate stream):
+Inverse-temperature, opponent count, and calibrated shifts:
 
 ```bash
-python3 -m esl.hand_trace --help
+python scripts/run_focal_lambda_sensitivity.py --out outputs/lambda_sensitivity
+python -m esl.res.opponent_count_sensitivity run --J 10 --mode switch_matched
+python scripts/run_controlled_behavioral_shift.py --out outputs/mechanistic_analysis_a3
+python scripts/run_k_sensitivity.py --out outputs/k_sensitivity
 ```
 
-**Offline baselines** (K-means, fuzzy c-means, conditional / marginal Bernoulli EM, oracle MCE) on a finished run:
-
-1. Enable logging: set **`log_interaction_observations=True`** in `ESLConfig` (writes `interaction_observations.csv` + `observation_manifest.json` next to `config.json`).
-2. Run:
+Observation noise / missingness uses the same categorical cell with `--p-obs` and `--obs-noise`:
 
 ```bash
-python3 -m esl.baselines run-all --run-dir runs/your_run/subfolder
+python -m esl.res --num-actions 3 --full --p-obs 0.5 --out-dir outputs/visibility
+python -m esl.res --num-actions 3 --full --obs-noise 0.1 --out-dir outputs/noise
 ```
 
-Writes **`baselines/baselines_summary.json`** (MCE, wall-clock, EM iterations). Protocol and fairness statement: **`docs/baselines/BASELINE_PROTOCOL.md`**.
-
-Bar chart from a summary JSON under `baselines/`:
+Population recovery (Algorithm 1, N=20 and N=100):
 
 ```bash
-# Prefix-matched budget (recommended for main-text messaging)
-python3 -m esl.baselines run-all --run-dir runs/your_run --prefix-max-round 400
-python3 -m esl.baselines plot --run-dir runs/your_run \
-  --summary baselines_summary_prefix_round_400.json
-
-# Full-log transductive diagnostic (appendix / sanity)
-python3 -m esl.baselines plot --run-dir runs/your_run
-# optional: --include-oracle  --annotation none|minimal|full
+python scripts/run_psrv_evaluation.py --help
 ```
 
-**Regenerated docs figures** (run from repo root with `PYTHONPATH=.` or editable install):
-
-- **`docs/baselines/baseline_mce_comparison.png`** — Protocol **P** (prefix-matched; default fraction of horizon in script).
-- **`docs/baselines/baseline_transductive_diagnostic.png`** — Protocol **T** (full-log batch refits vs final ESL θ).
-
-Command: **`./scripts/generate_baseline_comparison_figure.sh`** (~2200 rounds by default; **`--quick`** for smoke only).
-
-**Post-hoc figures** (after a run exists; beliefs use Euclidean projection onto $\Delta_K^\delta$ throughout):
+Robbins–Monro diminishing-step diagnostic:
 
 ```bash
-# Separation vs. observability (one …/main path per p_obs curve)
-python3 -m esl.plot_observability_separation \
-  --runs runs/two_type_sep_obs10_long/main runs/two_type_sep_obs05/main runs/two_type_sep_obs02/main \
-  --out runs/paper_figures/figure_separation_vs_obs.png
-
-# Mechanism: belief entropy + prototype separation (main folder only)
-python3 -m esl.plot_esl_mechanism \
-  --main-dir runs/two_type_sep_mechanism_obs05/main \
-  --out runs/paper_figures/figure_mechanism_obs05.png
+python -m esl.experiments.figure4_rm_dynamics --help
 ```
 
-**`runs/`** is mostly gitignored; canonical flagship recovery outputs live under `runs/recovery_best_bal20_*_seed42/` and `..._seed43/` and are tracked. Reproduce other figures locally with the commands above.
+See `configs/README.md` for protocol locks (seeds, H=100, switch interval, no resampling).
 
-## NeurIPS-style recovery experiments (presets / sweeps / figures)
+## Hardware and runtime
 
-Presets match the **20-agent balanced** flagship geometry (variable \(L_t\in[5,15]\), \(Q=15\), `prototype_lr_scale=22`, `init_noise=0.05`, …). Outputs default under **`runs/neurips/`** (gitignored except your own exceptions).
+- Quick verification: laptop CPU, a few minutes, no GPU.
+- Table/figure regeneration: seconds.
+- Full flagship rerun: many CPU-hours. PPO uses CPU torch in this protocol.
+- The accepted evidence package was produced on CPU with NumPy 2.2.6.
 
-```bash
-# List presets
-python3 -m esl.experiments list-presets
+## Reproducibility limitations
 
-# One smoke run (5 rounds — for CI / wiring checks)
-python3 -m esl.experiments run --preset recovery_flagship --smoke
+- Benchmark matrices are regenerated in memory and compared with `numpy.array_equal` to the committed JSON. Byte-level JSON identity can depend on the serializer; numerical equality is the scientific criterion.
+- Online EM’s reported LTE near 1.10 equals `-log(1/3)` in this implementation because the three prototypes collapse and beliefs remain uniform. It is not accurate regime recovery.
+- The OMD comparison uses a held-out seed split and a separately selected λ. Do not compare those PSR values to the headline λ=2 flagship.
+- This release does not include sequential-state or Overcooked environments.
+- Constant-step and diminishing-step dynamics plots are diagnostics, not convergence certificates.
 
-# Full flagship (10k rounds — long)
-python3 -m esl.experiments run --preset recovery_flagship --seed 42
+## License and citation
 
-# Sparse observability (set p_obs in --variant)
-python3 -m esl.experiments run --preset recovery_sparse_obs --variant 0.5 --seed 42
+This software is released under the MIT License (see `LICENSE`).
 
-# Fixed interaction budget (500 events, L_t=10 per round → 50 rounds)
-python3 -m esl.experiments run --preset recovery_short_horizon --variant 500 --seed 42
-
-# Ablation knobs (variant = numeric parameter)
-python3 -m esl.experiments run --preset recovery_lr_sweep --variant 18 --seed 42
-python3 -m esl.experiments run --preset recovery_init_noise_sweep --variant 0.05 --seed 42
-python3 -m esl.experiments run --preset recovery_Q_sweep --variant 15 --seed 42
-
-# Weak recovery contrast + fixed-prototype baseline (beliefs only)
-python3 -m esl.experiments run --preset recovery_failure_case --seed 42
-python3 -m esl.experiments run --preset recovery_fixed_prototype_baseline --seed 42
-```
-
-**Sweep helper** (sequential full runs — long): see **`scripts/run_neurips_sweeps.sh`**.
-
-**Small sparse sweep** (\(p_{\mathrm{obs}}\in\{1.0,0.5,0.3,0.2\}\), same flagship geometry):
-
-```bash
-python3 -m esl.experiments sparse-pobs-sweep --rounds 3000 --out-root runs/sparse_pobs_sweep
-# writes sparse_pobs_summary.csv (ESL + belief + EM/K-means MCE columns),
-#   final_ce_vs_p_obs.png, sparse_pobs_mce_belief.png
-# --no-baselines: skip observation log + offline baselines (faster CI / debug)
-python3 -m esl.experiments sparse-pobs-sweep --plot-only --out-root runs/sparse_pobs_sweep
-```
-
-**Prefix learning curve** (ESL θ vs batch baselines at increasing round prefixes; needs `log_interaction_observations` on the run):
-
-```bash
-python3 -m esl.experiments prefix-learning-curve --run-dir runs/your_logged_run
-```
-
-**Ablation ladder** (full ESL vs `freeze_prototype_parameters` vs `learning_frozen`):
-
-```bash
-python3 -m esl.experiments ablation-ladder --out-root runs/ablation_ladder --rounds 200
-```
-
-**Adaptation payoff sweep** (mean payoff vs `adaptation_lambda`; ESL-only figure—see module docstring):
-
-```bash
-python3 -m esl.experiments adaptation-payoff-sweep --out-root runs/adaptation_payoff_sweep --rounds 120
-```
-
-Use **`--rounds 10000`** on sparse sweep for paper-length curves. *Rounds-to-convergence vs \(p_{\mathrm{obs}}\)* is not plotted here unless you enable `stop_on_convergence` in a custom driver.
-
-**Aggregate CSV** (schema v1) over completed runs under a root:
-
-```bash
-python3 -m esl.experiments aggregate runs/neurips -o runs/neurips/_aggregates/summary_all_runs.csv
-```
-
-**Plots** (after runs exist):
-
-```bash
-python3 -m esl.plot_neurips flagship runs/neurips/recovery_flagship/long/seed_42 \
-  -o runs/neurips/_figures/flagship_panels.png
-python3 -m esl.plot_neurips belief-acc runs/neurips/recovery_flagship/long/seed_42 \
-  -o runs/neurips/_figures/belief_argmax_contribution.png
-python3 -m esl.plot_neurips robustness runs/neurips/_aggregates/summary_all_runs.csv \
-  -o runs/neurips/_figures/robustness.png
-python3 -m esl.plot_neurips compare runs/neurips/recovery_failure_case/weak/seed_42 \
-  runs/neurips/recovery_flagship/long/seed_42 -o runs/neurips/_figures/compare.png
-```
-
-Each run writes **`summary_metrics.json`** (including `final_mce`, `final_prototype_gap`, `num_interaction_events_executed`, `prototype_update_every_q`, …) plus **`run_manifest.json`** (preset / variant / optional `target_interaction_budget`).
-
-## Package layout
-
-| Path | Role |
-|------|------|
-| `esl/config.py` | `ESLConfig`, seeds, schedules |
-| `esl/trainer.py` | Main loop, batching, logging |
-| `esl/interaction_protocol.py` | \(L_t\) and ordered-pair sampling |
-| `esl/beliefs.py`, `esl/prototypes.py`, `esl/metrics.py` | Core math |
-| `esl/synthetic_population.py` | Optional simulator ground truth (evaluation only; not used by `run_esl`) |
-| `esl/experiment_two_type_separation.py` | Three-condition experiment driver |
-| `esl/experiments/` | NeurIPS presets, `run_manifest.json`, aggregate CSV builder |
-| `esl/plot_neurips.py` | Flagship / robustness / compare figures |
-| `esl/plot_observability_separation.py` | Overlay separation curves across `p_obs` |
-| `esl/plot_esl_mechanism.py` | Two-panel mechanism figure |
-| `esl/hand_trace.py` | Traceable single-run diagnostics |
-| `tests/` | Pytest suite + plan |
-| `scripts/reproduce_paper_figures.sh` | One-shot quick (and optional full) local reproduction |
-| `scripts/run_neurips_sweeps.sh` | Batch sparse / budget / lr / noise / Q sweeps into `runs/neurips/` |
-
-## Documentation
-
-- **`PRD.md`** — product / algorithm requirements; **§19** is the v2 addendum (variable \(L_t\), \(Q\), \(\hat\pi\), synthetic eval, MCE naming, SA wording).
-- **`ALGORITHM.md`** — **only** algorithm doc: *Current implementation* (narrative), *Theory-aligned target*, and *Pseudocode (Cormen-style)* in one file (no separate pseudocode markdown).
-- **`tests/TEST_PLAN.md`** — verification vs. validation map; keep in sync with `ALGORITHM.md` when the trainer contract changes.
-
-## License
-
-Released under the **MIT License** (see **`LICENSE`**): open and permissive, with **no warranty** and **no liability** for use of the software. Intended especially for **research and academic** work; cite the project or paper when appropriate.
-
-## Citation
-
-If you use this code in research, please cite the accompanying paper when available and link this repository.
+Please cite the NeurIPS 2026 paper. A `CITATION.cff` file is included. A DOI and proceedings URL will be added when they are assigned.

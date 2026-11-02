@@ -1,4 +1,11 @@
-# RES Fixed Benchmark Suite
+# Fixed benchmark suite
+
+The accepted NeurIPS 2026 evaluation uses the twelve committed **3×3** games
+listed in `flagship_3x3.manifest.json` (SHA-256 of each JSON file included).
+Load these files; do not resample payoffs.
+
+The original 24-instance `manifest.json` also records an earlier 2×2 suite.
+Those 2×2 files remain for protocol compatibility and are not the headline benchmark.
 
 **Interaction regime ≠ payoff realization.**
 

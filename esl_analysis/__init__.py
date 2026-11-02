@@ -1,1 +1,1 @@
-"""Mechanistic appendix analysis helpers for the ESL paper."""
+"""Small analysis helpers used by the controlled-shift diagnostic."""

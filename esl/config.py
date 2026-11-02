@@ -115,10 +115,16 @@ class ESLConfig:
     pd_p: float = 1.0
     pd_s: float = 0.0
     payoff_game: PayoffGame = "prisoners_dilemma"
+    # Optional free-form payoffs (PSRV / committed environments). When set, game_payoffs uses these.
+    payoff_row: list[list[float]] | tuple[tuple[float, ...], ...] | None = None
+    payoff_col: list[list[float]] | tuple[tuple[float, ...], ...] | None = None
 
     def validate(self) -> None:
-        if self.num_actions != 2:
-            raise ValueError("v1 supports exactly 2 actions")
+        if int(self.num_actions) < 2:
+            raise ValueError("num_actions must be >= 2")
+        # Paper protocol remains A=2; RES / future work may use A∈{2,3,5}.
+        if int(self.num_actions) not in (2, 3, 5):
+            raise ValueError("num_actions must be one of {2, 3, 5}")
         if not (0.0 <= self.p_obs <= 1.0):
             raise ValueError("p_obs must be in [0, 1]")
         if self.delta_simplex * self.num_prototypes > 1.0:
@@ -178,7 +184,19 @@ class ESLConfig:
         if self.metrics_num_true_types is not None:
             if int(self.metrics_num_true_types) < 1:
                 raise ValueError("metrics_num_true_types must be >= 1 when set")
-        if self.payoff_game not in ("prisoners_dilemma", "matching_pennies"):
+        if self.payoff_row is not None:
+            row = np.asarray(self.payoff_row, dtype=np.float64)
+            if row.ndim != 2 or row.shape[0] != row.shape[1]:
+                raise ValueError("payoff_row must be a square matrix")
+            if int(row.shape[0]) != int(self.num_actions):
+                raise ValueError(
+                    f"payoff_row shape {row.shape} incompatible with num_actions={self.num_actions}"
+                )
+            if self.payoff_col is not None:
+                col = np.asarray(self.payoff_col, dtype=np.float64)
+                if col.shape != row.shape:
+                    raise ValueError("payoff_col must match payoff_row shape")
+        elif self.payoff_game not in ("prisoners_dilemma", "matching_pennies"):
             raise ValueError("payoff_game must be 'prisoners_dilemma' or 'matching_pennies'")
         if self.force_hidden_policy_by_agent is not None:
             if len(self.force_hidden_policy_by_agent) != self.num_agents:
