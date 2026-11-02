@@ -144,7 +144,7 @@ See `configs/README.md` for protocol locks (seeds, H=100, switch interval, no re
 
 ## Reproducibility limitations
 
-- Benchmark matrices are regenerated in memory and compared with `numpy.array_equal` to the committed JSON. Byte-level JSON identity can depend on the serializer; numerical equality is the scientific criterion.
+- Canonical payoff matrices are the committed JSON files (SHA-256 in `reproducibility/SHA256SUMS` and `benchmark/flagship_3x3.manifest.json`). In-memory `generate_3x3_suite(seed=20260728)` matches those files bit-for-bit on macOS with NumPy 2.2.6. Other platforms or NumPy builds may draw a different stream; evaluation must load the JSON files and must not resample.
 - Online EM’s reported LTE near 1.10 equals `-log(1/3)` in this implementation because the three prototypes collapse and beliefs remain uniform. It is not accurate regime recovery.
 - The OMD comparison uses a held-out seed split and a separately selected λ. Do not compare those PSR values to the headline λ=2 flagship.
 - This release does not include sequential-state or Overcooked environments.

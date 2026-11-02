@@ -24,8 +24,12 @@ def _run(cmd: list[str]) -> None:
 
 
 def main() -> int:
+    allow = "--allow-regen-mismatch" in sys.argv
     print("== benchmark freeze ==")
-    _run([sys.executable, str(ROOT / "reproducibility" / "verify_benchmark_freeze.py")])
+    freeze = [sys.executable, str(ROOT / "reproducibility" / "verify_benchmark_freeze.py")]
+    if allow:
+        freeze.append("--allow-regen-mismatch")
+    _run(freeze)
 
     print("== flagship evidence hash ==")
     cells = ROOT / "evidence" / "flagship" / "cells.csv"

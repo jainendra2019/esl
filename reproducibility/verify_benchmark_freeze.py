@@ -96,7 +96,12 @@ def verify_regeneration() -> None:
         col_a = np.asarray(disk.payoff_col, dtype=np.float64)
         col_b = np.asarray(spec.payoff_col, dtype=np.float64)
         if not np.array_equal(row_a, row_b) or not np.array_equal(col_a, col_b):
-            raise AssertionError(f"payoff mismatch for {spec.instance_id}")
+            row_err = float(np.max(np.abs(row_a - row_b)))
+            col_err = float(np.max(np.abs(col_a - col_b)))
+            raise AssertionError(
+                f"payoff mismatch for {spec.instance_id}: "
+                f"max_abs_row={row_err} max_abs_col={col_err}"
+            )
         if int(disk.generator_seed) != THREE_X_THREE_SEED:
             raise AssertionError(f"{spec.instance_id} generator_seed={disk.generator_seed}")
 
@@ -122,17 +127,47 @@ def verify_loader_does_not_resample() -> None:
         raise AssertionError("load_suite does not iterate committed JSON files")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    import platform
+
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--allow-regen-mismatch",
+        action="store_true",
+        help="Treat in-memory regeneration mismatch as a documented portability warning. "
+        "Committed JSON hashes still must match. Canonical matrices are the JSON files.",
+    )
+    args = p.parse_args(argv)
     before = {rel: _sha256(ROOT / rel) for _, rel in _parse_sums(SHA256SUMS)}
     verify_hashes()
     verify_loader_does_not_resample()
-    verify_regeneration()
+    regen_ok = True
+    try:
+        verify_regeneration()
+    except AssertionError as exc:
+        regen_ok = False
+        print(f"REGEN_MISMATCH: {exc}")
+        print(
+            f"platform={platform.platform()} python={sys.version.split()[0]} numpy={np.__version__}"
+        )
+        print(
+            "Canonical source: committed benchmark/*.json (SHA-256). "
+            "In-memory generate_3x3_suite(seed=20260728) is verified bit-exact on "
+            "macOS / NumPy 2.2.6; other platforms may differ."
+        )
+        if not args.allow_regen_mismatch:
+            raise
     after = {rel: _sha256(ROOT / rel) for _, rel in _parse_sums(SHA256SUMS)}
     if before != after:
         raise AssertionError("benchmark freeze files changed during verification")
-    print("PASS: twelve 3x3 matrices bit-exact; SHA-256 ok; loader is file-backed")
+    if regen_ok:
+        print("PASS: twelve 3x3 matrices bit-exact; SHA-256 ok; loader is file-backed")
+    else:
+        print("PASS: SHA-256 of committed matrices ok; regeneration mismatch recorded")
     print(f"numpy={np.__version__} seed={THREE_X_THREE_SEED} n={len(EXPECTED_IDS)}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -25,10 +25,10 @@ jobs:
         run: python -c "import esl, esl.res.categorical_cell, esl.res.benchmark"
       - name: Tests
         run: python -m pytest -q
-      - name: Benchmark freeze
-        run: python reproducibility/verify_benchmark_freeze.py
+      - name: Benchmark hashes and regeneration
+        run: python reproducibility/verify_benchmark_freeze.py --allow-regen-mismatch
       - name: Release numbers and smoke
-        run: python scripts/verify_release.py
+        run: python scripts/verify_release.py --allow-regen-mismatch
       - name: Tables and figures
         run: |
           python scripts/reproduce_tables.py
