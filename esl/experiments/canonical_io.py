@@ -35,7 +35,7 @@ def write_manifest_json(path: Path, data: dict[str, Any]) -> None:
 
 def ensure_manuscript_bundle_layout(bundle_root: Path) -> None:
     """
-    PRD §14B directory scaffolding for paper-facing outputs (smoke / CI).
+    Directory scaffolding for paper-facing outputs.
 
     Creates standard subfolders and placeholder docs if missing.
     """
@@ -55,18 +55,19 @@ def ensure_manuscript_bundle_layout(bundle_root: Path) -> None:
     if not readme.is_file():
         readme.write_text(
             "# Manuscript bundle\n\n"
-            "Paper-facing artifacts per PRD §14B. Populate via experiment milestones "
-            "and final aggregation scripts.\n\n"
+            "Paper-facing artifacts. Populate via experiment drivers "
+            "and aggregation scripts.\n\n"
             "## Regenerate\n\n"
-            "Run the experiment registry smoke (`tests/test_experiment_registry_milestone1.py`) "
-            "and milestone bundle helpers from `esl.experiments.canonical_io`.\n",
+            "Use `scripts/reproduce_tables.py` and `scripts/reproduce_figures.py` "
+            "for evidence-derived summaries, or the experiment helpers in "
+            "`esl.experiments.canonical_io`.\n",
             encoding="utf-8",
         )
     report = bundle_root / "EXPERIMENT_REPORT.md"
     if not report.is_file():
         report.write_text(
             "# Experiment report (stub)\n\n"
-            "Final results and caveats will be written after all milestones complete.\n",
+            "Final results and caveats will be written after the run completes.\n",
             encoding="utf-8",
         )
 
@@ -86,7 +87,7 @@ def create_milestone_artifact_bundle(
     relative_files: tuple[str, ...] | None = None,
 ) -> Path:
     """
-    Copy canonical run files and emit a PRD §13A milestone status report.
+    Copy canonical run files and emit a status report.
 
     ``bundle_parent`` is typically ``manuscript_bundle/reports/``.
     """

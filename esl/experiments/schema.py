@@ -1,4 +1,4 @@
-"""JSON-side validation for canonical manifests and metric exports (PRD §11, §13)."""
+"""JSON-side validation for canonical manifests and metric exports."""
 
 from __future__ import annotations
 
@@ -218,7 +218,7 @@ def validate_summary_metrics(obj: dict[str, Any]) -> None:
                 f"summary_metrics: unknown baseline_family for baseline run: {fam!r}"
             )
         return
-    # ESL trainer output (no run_kind field before Milestone 2A)
+    # ESL trainer output without a run_kind field.
     missing = sorted(_SUMMARY_REQUIRED_KEYS - obj.keys())
     if missing:
         raise ValueError(f"summary_metrics: missing keys: {missing}")
@@ -312,7 +312,7 @@ def validate_esl_run_directory(run_dir: Path) -> None:
 
 
 def validate_baseline_ppo_smoke_directory(run_dir: Path) -> None:
-    """Milestone 2A: canonical baseline smoke outputs for independent PPO."""
+    """Canonical baseline smoke outputs for independent PPO."""
     validate_manifest_baseline(load_json(run_dir / "manifest.json"))
     validate_summary_metrics(load_json(run_dir / "summary_metrics.json"))
     validate_metrics_trajectory_baseline_ppo(run_dir / "metrics_trajectory.csv")
@@ -320,7 +320,7 @@ def validate_baseline_ppo_smoke_directory(run_dir: Path) -> None:
 
 
 def validate_baseline_clustering_smoke_directory(run_dir: Path) -> None:
-    """Milestone 2B: K-means / FCM static clustering baseline smoke."""
+    """Canonical smoke outputs for in-project K-means / FCM clustering."""
     validate_manifest_baseline(load_json(run_dir / "manifest.json"))
     validate_summary_metrics(load_json(run_dir / "summary_metrics.json"))
     validate_metrics_trajectory_baseline_clustering(run_dir / "metrics_trajectory.csv")

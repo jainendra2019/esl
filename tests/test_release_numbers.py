@@ -59,15 +59,74 @@ def test_esl_lowest_psr_counts():
     assert lt_safp == 11
 
 
+def _k_cells_by_k() -> dict[int, list[dict[str, str]]]:
+    by: dict[int, list[dict[str, str]]] = defaultdict(list)
+    for r in _load("k_sensitivity/k_sweep_cells.csv"):
+        by[int(float(r["k_model"]))].append(r)
+    return by
+
+
 def test_k_sensitivity_means():
-    rows = _load("k_sensitivity/summary.csv")
-    got = {(int(r["k_model"]), r["metric"]): round(float(r["mean"]), 2) for r in rows}
-    assert got[(2, "psr")] == 175.91
-    assert got[(2, "dpr")] == 120.19
-    assert got[(3, "psr")] == 162.97
-    assert got[(3, "dpr")] == 106.67
-    assert got[(5, "psr")] == 161.65
-    assert got[(5, "dpr")] == 98.96
+    by = _k_cells_by_k()
+    assert {k: len(v) for k, v in by.items()} == {2: 120, 3: 120, 5: 120}
+    means = {
+        (k, metric): round(_mean(rows, metric), 2)
+        for k, rows in by.items()
+        for metric in ("psr", "dpr")
+    }
+    assert means[(2, "psr")] == 175.91
+    assert means[(2, "dpr")] == 120.19
+    assert means[(3, "psr")] == 162.97
+    assert means[(3, "dpr")] == 106.67
+    assert means[(5, "psr")] == 161.65
+    assert means[(5, "dpr")] == 98.96
+
+
+def test_k_sensitivity_paired_holm_recomputed():
+    from scipy import stats as sp_stats
+
+    from esl.res.stats import holm_adjust, paired_mean_ci95
+
+    by = _k_cells_by_k()
+    tests = []
+    for k_alt in (2, 5):
+        for metric in ("psr", "dpr"):
+            map3 = {(r["instance_id"], int(r["seed"])): float(r[metric]) for r in by[3]}
+            mapk = {(r["instance_id"], int(r["seed"])): float(r[metric]) for r in by[k_alt]}
+            keys = sorted(set(map3) & set(mapk))
+            diffs = [mapk[key] - map3[key] for key in keys]
+            st = paired_mean_ci95(diffs)
+            _tstat, pval = sp_stats.ttest_rel(
+                [mapk[key] for key in keys], [map3[key] for key in keys]
+            )
+            tests.append(
+                {
+                    "contrast": f"K{k_alt}-K3",
+                    "metric": metric,
+                    "mean_diff": st["mean"],
+                    "p_unadj": float(pval),
+                    "ci_includes_0": bool(st["ci95_low"] <= 0.0 <= st["ci95_high"]),
+                }
+            )
+    for rec, adj in zip(tests, holm_adjust([r["p_unadj"] for r in tests])):
+        rec["p_holm"] = adj
+        rec["holm_sig_0.05"] = bool(adj < 0.05)
+    by_key = {(r["contrast"], r["metric"]): r for r in tests}
+    k2p = by_key[("K2-K3", "psr")]
+    k2d = by_key[("K2-K3", "dpr")]
+    k5p = by_key[("K5-K3", "psr")]
+    k5d = by_key[("K5-K3", "dpr")]
+    assert round(k2p["mean_diff"], 2) == 12.94
+    assert round(k5p["mean_diff"], 2) == -1.32
+    assert round(k2d["mean_diff"], 2) == 13.52
+    assert round(k5d["mean_diff"], 2) == -7.71
+    assert k2p["holm_sig_0.05"] is True
+    assert k2d["holm_sig_0.05"] is True
+    assert k5p["holm_sig_0.05"] is False
+    assert k5d["holm_sig_0.05"] is True
+    assert k5p["ci_includes_0"] is True
+    assert k2p["p_holm"] == pytest.approx(5.236241553340677e-05, rel=1e-9)
+    assert k5p["p_holm"] == pytest.approx(0.4705938367561794, rel=1e-9)
 
 
 def test_k3_matches_flagship_cells():
@@ -101,19 +160,31 @@ def test_psrv_recovery_accuracy():
     assert round(acc100, 3) == 0.847
 
 
-def test_omd_held_out_means():
-    import json
+def test_omd_held_out_means_recomputed():
+    from esl.res.stats import bootstrap_mean_ci95, filter_seeds, paired_psr_diffs
 
-    summary = _load("omd/omd_psr_summary.csv")
-    primary = [r for r in summary if r["layer"] == "primary_held_out"]
-    by = {r["method"]: r for r in primary}
-    assert round(float(by["ESL-decision-tuned"]["psr_mean"]), 2) == 86.73
-    assert round(float(by["Per-opponent OMD/MWU"]["psr_mean"]), 2) == 116.67
-    paired = json.loads((EVIDENCE / "omd" / "omd_vs_esl_paired.json").read_text(encoding="utf-8"))
-    d = paired["primary_held_out_seeds_3_9"]["per_opponent_minus_esl_star"]
-    assert d["n"] == 84
-    assert round(float(d["mean_delta"]), 2) == 29.94
-    assert round(float(d["ci95_lo"]), 2) == 13.79
-    assert round(float(d["ci95_hi"]), 2) == 48.07
-    assert float(paired["tuning"]["frozen_lambda"]) == 10.0
-    assert float(paired["tuning"]["frozen_eta"]) == 1.0
+    esl_rows = filter_seeds(_load("omd/esl_lambda_star_cells.csv"), (3, 4, 5, 6, 7, 8, 9))
+    omd_rows = filter_seeds(_load("omd/omd_per_opponent_cells.csv"), (3, 4, 5, 6, 7, 8, 9))
+    esl = {(str(r["instance_id"]), int(r["seed"])): float(r["psr"]) for r in esl_rows}
+    omd = {(str(r["instance_id"]), int(r["seed"])): float(r["psr"]) for r in omd_rows}
+    keys = set(esl) & set(omd)
+    assert len(keys) == 84
+    esl_mean = sum(esl[k] for k in keys) / len(keys)
+    omd_mean = sum(omd[k] for k in keys) / len(keys)
+    diffs = paired_psr_diffs(omd_rows, esl)
+    boot = bootstrap_mean_ci95(diffs, seed=42, n_boot=10_000)
+    assert round(esl_mean, 2) == 86.73
+    assert round(omd_mean, 2) == 116.67
+    assert round(boot["mean"], 2) == 29.94
+    assert round(boot["ci95_low"], 2) == 13.79
+    assert round(boot["ci95_high"], 2) == 48.07
+    assert boot["mean"] == pytest.approx(29.944589146999935, abs=1e-9)
+    assert boot["ci95_low"] == pytest.approx(13.792863472207264, abs=1e-9)
+    assert boot["ci95_high"] == pytest.approx(48.07397529072643, abs=1e-9)
+
+
+def test_freeze_cli_does_not_silently_pass_regen_mismatch():
+    src = (ROOT / "reproducibility" / "verify_benchmark_freeze.py").read_text(encoding="utf-8")
+    assert "allow-regen-mismatch" not in src
+    assert "regeneration mismatch recorded" not in src
+    assert "--regen" in src

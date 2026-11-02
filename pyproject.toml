@@ -8,11 +8,16 @@ version = "1.0.0"
 description = "Epistemic Social Learning: camera-ready code for the NeurIPS 2026 paper"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.14"
 dependencies = [
-    "numpy>=1.24,<3",
-    "scipy>=1.10",
-    "matplotlib>=3.7",
+    "numpy>=2.2.6,<3",
+    "scipy>=1.16,<2",
+    "matplotlib>=3.10",
+]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 [project.optional-dependencies]

@@ -1,7 +1,4 @@
-"""Training loop: recovery and adaptation modes, batching, logging hooks.
-
-Implementation narrative and pseudocode (faithful to this file) live in **ALGORITHM.md** at repo root.
-"""
+"""Training loop: recovery and adaptation modes, batching, logging hooks."""
 
 from __future__ import annotations
 

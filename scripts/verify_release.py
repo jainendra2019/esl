@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Quick camera-ready verification: benchmark integrity, smoke cell, frozen numbers.
 
+Default (portable): committed JSON hashes, load of the twelve games, evidence
+hashes, accepted numerical checks, and a 40-step ESL smoke cell.
+
+Pass ``--regen`` to additionally run the strict in-memory generator comparison
+(known platform-dependent). Integrity failures always fail this script.
+
 Inputs: committed benchmark/, evidence/, and the installed esl package.
 Outputs: PASS/FAIL on stdout. Does not write files.
 """
@@ -23,13 +29,16 @@ def _run(cmd: list[str]) -> None:
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
-def main() -> int:
-    allow = "--allow-regen-mismatch" in sys.argv
-    print("== benchmark freeze ==")
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    regen = "--regen" in args
+    print("== benchmark freeze (hashes, load, no resample) ==")
     freeze = [sys.executable, str(ROOT / "reproducibility" / "verify_benchmark_freeze.py")]
-    if allow:
-        freeze.append("--allow-regen-mismatch")
     _run(freeze)
+
+    if regen:
+        print("== in-memory generator regeneration (strict, platform-dependent) ==")
+        _run(freeze + ["--regen"])
 
     print("== flagship evidence hash ==")
     cells = ROOT / "evidence" / "flagship" / "cells.csv"
@@ -39,7 +48,16 @@ def main() -> int:
     print(f"PASS cells.csv SHA-256 {digest}")
 
     print("== accepted numerical checks ==")
-    _run([sys.executable, "-m", "pytest", "-q", "tests/test_release_numbers.py", "tests/test_res_benchmark.py"])
+    _run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "tests/test_release_numbers.py",
+            "tests/test_res_benchmark.py",
+        ]
+    )
 
     print("== tiny ESL smoke cell ==")
     from esl.res.benchmark import load_suite

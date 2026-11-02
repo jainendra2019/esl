@@ -1,4 +1,4 @@
-"""Mean, sample std, and 95% CI for the mean (t-based); used in Milestone 4 aggregation."""
+"""Mean, sample std, and 95% CI for the mean (t-based)."""
 
 from __future__ import annotations
 

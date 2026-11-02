@@ -3,7 +3,7 @@ Pytest configuration: markers and shared fixtures.
 
 Markers:
   verification — algorithm / math correctness (§1 of TEST_PLAN.md)
-  validation   — ESL behavior vs PRD intent (§2)
+  validation   — ESL behavior vs intended protocol (§2)
   edge           — robustness (§3)
   slow           — long runs; omitted from default `pytest` (pass `--runslow` to include)
 

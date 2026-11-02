@@ -1,8 +1,4 @@
-"""
-Experiment registry: named blocks, canonical manifest payloads, and ESL smoke configs.
-
-PRD §9 (experiment_registry), §10–11 (manifests / metrics identifiers), §13A (milestones).
-"""
+"""Experiment registry: named blocks, canonical manifest payloads, and ESL smoke configs."""
 
 from __future__ import annotations
 
@@ -31,7 +27,7 @@ class ExperimentBlock:
 
 
 def milestone_smoke_lock_cfg(*, seed: int = 0) -> ESLConfig:
-    """Tiny ESL run for Milestone 1 CI: few rounds, one pair per round, small N."""
+    """Tiny ESL run for schema/smoke tests: few rounds, one pair per round, small N."""
     c = ESLConfig(
         seed=seed,
         mode="recovery",
@@ -211,7 +207,7 @@ def build_esl_manifest_dict(
     run_dir_relative: str | None = None,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Canonical manifest.json body for an ESL run (PRD §10)."""
+    """Canonical manifest.json body for an ESL run."""
     body: dict[str, Any] = {
         "schema_version": MANIFEST_SCHEMA_VERSION,
         "run_kind": "esl",

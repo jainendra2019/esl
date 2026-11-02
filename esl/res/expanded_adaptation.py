@@ -1,7 +1,6 @@
-"""Expanded 3×3 Adaptation Benchmark — flagship registry, protocol locks, packaging helpers.
+"""Flagship twelve-game 3×3 adaptation protocol locks and packaging helpers.
 
-Canonical empirical evaluation for the revised manuscript (replaces 2×2 Figure 1 as primary).
-OMD/MWU is excluded from this workstream. PPO is pending until after the clean flagship freeze.
+OMD/MWU is evaluated separately (held-out λ/η comparison) and is not part of this grid.
 """
 
 from __future__ import annotations
