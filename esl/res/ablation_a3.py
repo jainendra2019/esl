@@ -1,12 +1,7 @@
-"""A=3 ablation grid + α/M sensitivity sweeps — reviewer response experiments.
+"""Matched-component ablations and α / batch-size sensitivity on the twelve-game suite.
 
-Methods:
-  ESL, No-Sharing, Fixed-K, No-Belief, Online EM
-Each ablation removes exactly one mechanism (see outputs/ablation_a3/ablation_semantics.md).
-Critically, No-Sharing and No-Belief use the **same** γ and M as ESL so differences are
-purely mechanistic (unlike the old 2×2 code which used different rates).
-
-Also provides α-sweep and M-sweep runners (ESL-only, clean benchmark).
+Methods: ESL, No-Sharing, Fixed-K, No-Belief, Online EM.
+No-Sharing and No-Belief use the same γ and M as ESL.
 """
 
 from __future__ import annotations

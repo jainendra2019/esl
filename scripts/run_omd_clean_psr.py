@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Clean 3×3 PSR bake-off: confirmatory held-out protocol.
+"""Held-out 3×3 PSR comparison of ESL and OMD/MWU.
 
 Locks:
   - Cell unit: (instance_id, seed); focal role fixed to row
-  - Tune η (OMD) and λ (ESL decision-focused) on seeds {0,1,2} by mean PSR
+  - Tune η (OMD) and λ (ESL) on seeds {0,1,2} by mean PSR
   - Primary confirmatory report: seeds {3,...,9}, n=84
-  - Secondary appendix summary: seeds {0,...,9}, n=120 (disclose tuning-slice reuse; not for AC claims)
+  - Secondary descriptive summary: seeds {0,...,9}, n=120 (includes the tuning slice)
   - Always report ESL-default λ=2 alongside ESL decision-tuned λ*
-  - Main-paper tables keep λ=2; λ* is bake-off-only
+  - Headline twelve-game tables use λ=2; λ* is this comparison only
 """
 
 from __future__ import annotations
@@ -549,7 +549,7 @@ def main() -> None:
 
     p = primary
     s = secondary
-    report = f"""# ESL vs OMD Clean 3×3 PSR Bake-off (held-out primary)
+    report = f"""# ESL vs OMD Clean 3×3 PSR comparison (held-out primary)
 
 ## Protocol
 
@@ -558,10 +558,10 @@ def main() -> None:
   - OMD η grid: {{{", ".join(str(x) for x in OMD_ETA_GRID)}}} → **frozen η = {frozen_eta:g}** (min mean PSR).
   - ESL λ grid: {{{", ".join(str(x) for x in FOCAL_LAMBDA_GRID)}}} → **frozen λ\\* = {frozen_lam:g}** (min mean PSR).
   - Same seeds, same PSR criterion, one scalar hyperparameter each (comparable tuning budget).
-- **Primary confirmatory report:** seeds {{{", ".join(map(str, PRIMARY_SEEDS))}}}, **n = 84** (untouched by hyperparameter selection). This is the defensible bake-off result.
-- **Appendix full-seed summary:** seeds {{{", ".join(map(str, ALL_SEEDS))}}}, **n = 120**, which **includes** the development slice; not used for confirmatory claims.
+- **Primary confirmatory report:** seeds {{{", ".join(map(str, PRIMARY_SEEDS))}}}, **n = 84** (untouched by hyperparameter selection).
+- **Full-seed descriptive summary:** seeds {{{", ".join(map(str, ALL_SEEDS))}}}, **n = 120**, which **includes** the development slice; not used for confirmatory claims.
 - **ESL-default (λ={DEFAULT_LAMBDA:g}):** original main-paper/default configuration; retained in all main tables.
-- **ESL-decision-tuned (λ={frozen_lam:g}):** bake-off-only sharper soft-BR for the OMD comparison; does **not** replace main-paper ESL.
+- **ESL-decision-tuned (λ={frozen_lam:g}):** sharper soft-BR for this OMD comparison only; does **not** replace main-paper ESL.
 - **OMD:** per-opponent primary; global secondary. Favorable full-info payoff-vector feedback. No latent types / switch / reset. DPR/LTE N/A.
 
 ## Development selection (seeds 0–2)
@@ -615,33 +615,7 @@ Not used for confirmatory claims. Includes development seeds 0–2 used to freez
 
 ## Interpretation
 
-λ controls the trade-off between softer belief-conditioned behavior and aggressive decision exploitation. For the OMD bake-off we report a **decision-tuned** ESL variant (λ={frozen_lam:g}), selected on the development slice by mean PSR. This isolates decision performance against a favorable full-information no-regret learner; it is **not** evidence that the original main-paper/default λ={DEFAULT_LAMBDA:g} configuration dominates OMD. Main tables retain λ={DEFAULT_LAMBDA:g}. On the held-out primary slice, decision-tuned ESL outperforms per-opponent OMD and is statistically indistinguishable from globally pooled OMD, while ESL additionally supports prediction / latent identification / shared prototypes.
-
-## Paste-ready Area Chair response
-
-**Response.** We thank the Area Chair for highlighting that the rationale for our comparator set was insufficiently explicit. We agree that standard no-regret decision learners are relevant comparators for adaptation regret, even though they do not perform latent opponent modeling or recover population-level behavioral structure.
-
-We therefore add entropy-regularized Online Mirror Descent, equivalently Multiplicative Weights under our linear-feedback formulation, as a representative no-regret baseline on the clean expanded 3×3 benchmark. The primary OMD variant maintains a separate action-weight vector for each protocol-visible opponent, allowing interaction-specific decision adaptation without latent types, learned prototypes, a switch signal, or a reset. After observing the opponent’s action, OMD receives the full counterfactual payoff vector over focal actions; this is a favorable full-information feedback setting.
-
-OMD and ESL are directly comparable on post-switch oracle regret, but OMD does not produce opponent-action predictions, latent assignments, or a shared prototype dictionary. DPR, LTE, and prototype-recovery metrics are therefore not applicable to OMD.
-
-For this decision-focused comparison, we evaluate a decision-tuned ESL configuration with sharper logit response λ={frozen_lam:g}, selected together with OMD’s step-size η on a development slice (seeds 0–2; candidate λ ∈ {{{", ".join(str(x) for x in FOCAL_LAMBDA_GRID)}}}, η ∈ {{{", ".join(str(x) for x in OMD_ETA_GRID)}}}; minimize mean PSR). The original main-paper/default λ={DEFAULT_LAMBDA:g} configuration is retained in all main tables and is not claimed to dominate OMD. Primary confirmatory results use untouched seeds 3–9 (12 games; n=84). On that held-out slice, ESL with λ={frozen_lam:g} obtains mean PSR {_fmt_sum(p["esl_star"]).split(" (n=")[0]}, compared with {_fmt_sum(p["po"]).split(" (n=")[0]} for per-opponent OMD. The paired difference, OMD minus ESL, is {p["paired_po_vs_star"]["mean_delta"]:.2f}, with 95% CI [{p["paired_po_vs_star"]["ci95_lo"]:.2f}, {p["paired_po_vs_star"]["ci95_hi"]:.2f}]. Decision-tuned ESL therefore achieves significantly lower regret than the interaction-specific OMD comparator. Global OMD obtains PSR {_fmt_sum(p["gl"]).split(" (n=")[0]}; its paired difference from decision-tuned ESL is {p["paired_gl_vs_star"]["mean_delta"]:.2f}, with CI [{p["paired_gl_vs_star"]["ci95_lo"]:.2f}, {p["paired_gl_vs_star"]["ci95_hi"]:.2f}], so the two are not statistically distinguishable.
-
-These findings sharpen rather than broaden our claim. Under favorable full-information feedback, specialized no-regret learning is a strong decision-only comparator. Nevertheless, decision-tuned ESL outperforms per-opponent OMD and is competitive with globally pooled OMD, while additionally supporting behavioral prediction, latent-state identification, and shared-prototype recovery.
-
-We include one OMD/MWU formulation rather than separate OMD and FTRL implementations because matched regularized formulations can yield equivalent updates. This comparison complements SA-FP: OMD tests whether direct payoff-based adaptation is sufficient without opponent representations, whereas SA-FP tests whether switch-aware latent filtering is sufficient without online prototype learning.
-
-We have revised our claims accordingly. We do not claim universal superiority over all online-learning algorithms or information-feedback regimes.
-
-## Surgical manuscript snippets
-
-**OMD/MWU.** We include per-opponent entropy-regularized OMD/MWU as a PSR-only comparator. After observing the opponent action, it receives the counterfactual payoff vector over all focal actions and updates only the weight vector associated with that opponent. Opponent identity is protocol-visible to all methods. OMD uses no latent representation, switch signal, or reset.
-
-**Decision-focused ESL.** The main benchmark retains the original main-paper/default λ={DEFAULT_LAMBDA:g}. For the decision-only comparison with OMD, we additionally report ESL with λ={frozen_lam:g} (selected on seeds 0–2 by mean PSR), yielding a sharper belief-conditioned response. This configuration is labeled separately and does not replace the main-paper ESL protocol; it is not evidence that λ={DEFAULT_LAMBDA:g} dominates OMD.
-
-**Results (primary, n=84).** ESL with λ={frozen_lam:g} achieves PSR {p["esl_star"]["psr_mean"]:.2f}, compared with {p["po"]["psr_mean"]:.2f} for per-opponent OMD and {p["gl"]["psr_mean"]:.2f} for global OMD. Decision-tuned ESL significantly outperforms per-opponent OMD in the paired comparison, while its difference from global OMD is not statistically significant.
-
-**Limitation.** OMD receives favorable full-information counterfactual payoff feedback, whereas ESL is designed to jointly support decision adaptation and behavioral-structure inference. The comparison therefore isolates decision performance and should not be interpreted as a comparison on prediction or representation recovery.
+λ controls the trade-off between softer belief-conditioned behavior and aggressive decision exploitation. For the OMD comparison we report a **decision-tuned** ESL variant (λ={frozen_lam:g}), selected on the development slice by mean PSR. This isolates decision performance against a favorable full-information no-regret learner; it is **not** evidence that the original main-paper/default λ={DEFAULT_LAMBDA:g} configuration dominates OMD. Main tables retain λ={DEFAULT_LAMBDA:g}. On the held-out primary slice, decision-tuned ESL outperforms per-opponent OMD and is statistically indistinguishable from globally pooled OMD, while ESL additionally supports prediction / latent identification / shared prototypes.
 """
     (OUT / "REPORT.md").write_text(report, encoding="utf-8")
     print(f"Done → {OUT}", flush=True)

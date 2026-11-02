@@ -96,17 +96,29 @@ Verified regeneration environment:
 that implement the same PCG64 `default_rng(20260728)` stream should match;
 this freeze was checked against 2.2.6 only.
 
-## Deterministic regeneration (in memory; do not overwrite `benchmark/`)
+## Portable freeze check (hashes and JSON load; default)
 
-From the repository root:
+Canonical matrices are the committed JSON files. From the repository root:
 
 ```bash
-PYTHONPATH=. python3 reproducibility/verify_benchmark_freeze.py
+python reproducibility/verify_benchmark_freeze.py
 ```
 
-That script regenerates the twelve 3×3 matrices in memory, asserts
-`numpy.array_equal` on every row and column payoff, checks instance IDs,
-and verifies `reproducibility/SHA256SUMS`.
+This checks `reproducibility/SHA256SUMS`, loads the twelve 3×3 games, and
+asserts that `load_suite` reads JSON and does not resample. Integrity
+failures always fail.
+
+## In-memory generator regeneration (strict; platform-dependent)
+
+```bash
+python reproducibility/verify_benchmark_freeze.py --regen
+```
+
+This compares `generate_3x3_suite(seed=20260728)` to the committed JSON with
+`numpy.array_equal`. The generator stream is bit-exact on macOS / NumPy 2.2.6
+and may differ on other platforms. A mismatch is reported as a generator
+platform-dependence failure (exit status 2). It is **not** treated as a PASS
+of JSON integrity.
 
 ## Evaluation loading (no resampling)
 

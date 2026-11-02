@@ -1,4 +1,4 @@
-"""Publication figure settings (Milestone 3: NeurIPS-ready DPI)."""
+"""Publication figure settings (NeurIPS-ready DPI)."""
 
 from __future__ import annotations
 

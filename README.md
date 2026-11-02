@@ -10,7 +10,7 @@ Code and frozen numerical evidence for the NeurIPS 2026 paper:
 
 ESL is a two-timescale learner for repeated multi-agent interaction. Fast Bayesian beliefs over shared behavioral prototypes are coupled to a slower prototype update driven by belief-weighted observations. Because the learner’s actions shape the data it sees, the observation process is endogenous.
 
-This repository is a camera-ready research release: the accepted algorithm, the committed twelve-game benchmark, experiment drivers, and compact cell-level evidence needed to recompute the published tables and figures.
+This repository is a camera-ready research release: the accepted algorithm, the committed twelve-game benchmark, experiment drivers, and compact cell-level evidence needed to recompute the published numerical tables. Supporting evidence-derived plots can be regenerated from the same cells; they are not the exact manuscript PDFs.
 
 ## Repository contents
 
@@ -26,7 +26,7 @@ This repository is a camera-ready research release: the accepted algorithm, the 
 
 ## Installation
 
-Python 3.10–3.13. The accepted numerical artifacts were produced with **NumPy 2.2.6** and **SciPy 1.16.0**.
+Python **3.11–3.13** (tested). Pinned dependencies in `requirements.txt`: NumPy 2.2.6, SciPy 1.16.0, matplotlib 3.10.3, pytest 8.3.5. The accepted numerical artifacts were produced with those pins.
 
 ```bash
 git clone https://github.com/jainendra2019/esl.git
@@ -34,8 +34,8 @@ cd esl
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 python -m pip install -U pip
-python -m pip install -e .
 python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 Optional, only if you rerun the PPO baseline:
@@ -55,11 +55,19 @@ python -m pytest -q
 python scripts/verify_release.py
 ```
 
-This runs unit/protocol tests, regenerates the twelve 3×3 matrices in memory and compares them to the committed files, checks evidence hashes, and runs a 40-step ESL smoke cell.
+This runs unit/protocol tests, checks SHA-256 and loading of the committed twelve-game JSON files, checks evidence hashes, independently recomputes the key paired K-sensitivity and OMD summaries from cell tables, and runs a 40-step ESL smoke cell.
 
-## Reproduce reported tables and figures
+In-memory regeneration of the payoff generator is a **separate**, strict check and is known to be platform-dependent. It is not part of the default portable verification:
 
-These commands **do not** rerun the expensive simulations. They recompute published summaries from `evidence/`.
+```bash
+python reproducibility/verify_benchmark_freeze.py --regen
+```
+
+Canonical matrices are the committed JSON files. A generator-stream mismatch on Linux does not waive a hash or load failure.
+
+## Reproduce reported tables and supporting plots
+
+These commands **do not** rerun the expensive simulations. They recompute published numerical summaries from `evidence/` cell tables. `scripts/reproduce_figures.py` writes **supporting evidence-derived plots** (bar/line charts from those cells). It does **not** regenerate the exact manuscript figure PDFs.
 
 ```bash
 python scripts/reproduce_tables.py
@@ -69,7 +77,7 @@ python scripts/reproduce_figures.py
 Outputs:
 
 - `outputs/tables/` — method, per-game, K-sensitivity, OMD, ablation, and sensitivity CSVs
-- `outputs/figures/` — PDF/PNG bar and line plots from those tables
+- `outputs/figures/` — supporting PDF/PNG plots derived from `evidence/`
 
 Accepted flagship ESL means (n=120 game–seed cells, λ=2):
 
@@ -95,7 +103,7 @@ Headline twelve-game adaptation (λ=2; includes ESL, Fixed-K, SA-FP, Online EM; 
 python -m esl.res --num-actions 3 --full --out-dir outputs/flagship
 ```
 
-Held-out OMD/MWU bake-off:
+Held-out OMD/MWU comparison:
 
 ```bash
 python scripts/run_omd_clean_psr.py

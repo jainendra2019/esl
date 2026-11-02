@@ -1,4 +1,4 @@
-"""python -m esl.res → RES M1 runner CLI."""
+"""python -m esl.res → committed-suite experiment runner."""
 
 from esl.res.runner import main
 

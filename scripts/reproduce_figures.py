@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Regenerate empirical figures from the frozen evidence package.
+"""Write supporting evidence-derived plots from the frozen cell tables.
+
+These are bar/line charts computed from ``evidence/``. They are not the exact
+manuscript figure PDFs.
 
 Does not rerun simulations.
 
@@ -220,7 +223,8 @@ def main() -> None:
         "M",
     )
     rm_timeseries()
-    print(f"Wrote figures under {OUT}")
+    print(f"Wrote supporting evidence-derived plots under {OUT}")
+    print("These are not the exact manuscript figure PDFs.")
     for p in sorted(OUT.glob("*")):
         print(f"  {p.name}")
 

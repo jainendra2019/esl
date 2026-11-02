@@ -1,10 +1,6 @@
-"""
-Thin adapter for official PPO-PyTorch (PRD §8A: independent PPO baseline).
+"""Thin adapter for official PPO-PyTorch.
 
-Uses only ``third_party/PPO-PyTorch/PPO.py`` — not the upstream ``train.py`` (roboschool/gym).
-Trains a discrete policy in a tiny repeated Prisoner's Dilemma loop against a **fixed**
-hidden opponent (recovery-style exogenous opponent), then writes canonical manifests
-and summary JSON for Milestone 2A smoke only.
+Uses only ``third_party/PPO-PyTorch/PPO.py`` — not the upstream ``train.py``.
 """
 
 from __future__ import annotations
