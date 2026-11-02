@@ -1,0 +1,49 @@
+{
+  "n_paired": 120,
+  "comparisons": [
+    {
+      "comparison": "ESL vs Fixed-K",
+      "n": 120,
+      "mean_delta_psr": -40.6687,
+      "ci95_lo": -57.0722,
+      "ci95_hi": -25.6585,
+      "t_stat": -5.0538,
+      "p_value": 1.5846254203193498e-06,
+      "dz": -0.4613,
+      "p_holm": 6.338501681277399e-06
+    },
+    {
+      "comparison": "ESL vs Online EM",
+      "n": 120,
+      "mean_delta_psr": -24.0901,
+      "ci95_lo": -36.6679,
+      "ci95_hi": -12.8748,
+      "t_stat": -3.964,
+      "p_value": 0.00012620706890997715,
+      "dz": -0.3619,
+      "p_holm": 0.00037862120672993145
+    },
+    {
+      "comparison": "ESL vs No-Belief",
+      "n": 120,
+      "mean_delta_psr": -16.8178,
+      "ci95_lo": -28.7773,
+      "ci95_hi": -6.1321,
+      "t_stat": -2.8992,
+      "p_value": 0.004455875203852974,
+      "dz": -0.2647,
+      "p_holm": 0.008911750407705948
+    },
+    {
+      "comparison": "ESL vs No-Sharing",
+      "n": 120,
+      "mean_delta_psr": -2.9172,
+      "ci95_lo": -7.9368,
+      "ci95_hi": 2.0956,
+      "t_stat": -1.1294,
+      "p_value": 0.26100795252230224,
+      "dz": -0.1031,
+      "p_holm": 0.26100795252230224
+    }
+  ]
+}

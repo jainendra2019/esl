@@ -319,7 +319,13 @@ def run_esl(
 
     pay = games.game_payoffs(cfg)
     kt_metrics = cfg.metrics_num_true_types if cfg.metrics_num_true_types is not None else cfg.num_prototypes
-    true_type_probs = games.true_type_distributions(int(kt_metrics))
+    use_archetypes = int(cfg.num_actions) > 2 or cfg.payoff_row is not None
+    if use_archetypes and int(cfg.num_actions) > 2:
+        true_type_probs = games.true_type_distributions(
+            int(kt_metrics), num_actions=int(cfg.num_actions), pay_row=pay.row
+        )
+    else:
+        true_type_probs = games.true_type_distributions(int(kt_metrics))
 
     # Assign each agent a true latent type index in 0..K-1 (cyclic if N > K)
     if cfg.force_agent_true_types is not None:
@@ -331,6 +337,11 @@ def run_esl(
         hidden_policies = [
             games.build_hidden_policy(int(cfg.force_hidden_policy_by_agent[a]) % _nb)
             for a in range(cfg.num_agents)
+        ]
+    elif int(cfg.num_actions) > 2:
+        # PSRV / A≥3: game-derived soft-BR archetypes from focal payoff matrix
+        hidden_policies = [
+            games.build_archetype_policy(pay.row, int(true_types[a])) for a in range(cfg.num_agents)
         ]
     else:
         hidden_policies = [

@@ -1,35 +1,26 @@
-"""python -m esl [--adapt] runs a short demo and writes plots."""
+"""python -m esl — short help for the camera-ready release."""
 
 from __future__ import annotations
 
-import argparse
-from pathlib import Path
-
-from esl.config import ESLConfig
-from esl.plotting import plot_run
-from esl.trainer import run_esl
-
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="ESL demo run")
-    p.add_argument("--adapt", action="store_true", help="adaptation mode (logit best response)")
-    p.add_argument("--rounds", type=int, default=200)
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--out", type=Path, default=None)
-    args = p.parse_args()
-
-    cfg = ESLConfig(
-        seed=args.seed,
-        mode="adaptation" if args.adapt else "recovery",
-        num_rounds=args.rounds,
-        num_agents=4,
-        num_prototypes=2,
-        observability="full",
-        symmetric_init=False,
-        init_noise=0.05,
+    print(
+        "Epistemic Social Learning (ESL) — NeurIPS 2026 camera-ready code.\n"
+        "\n"
+        "Quick verification:\n"
+        "  python -m pytest -q\n"
+        "  python scripts/verify_release.py\n"
+        "\n"
+        "Regenerate published tables and figures from frozen evidence:\n"
+        "  python scripts/reproduce_tables.py\n"
+        "  python scripts/reproduce_figures.py\n"
+        "\n"
+        "Run experiments (expensive):\n"
+        "  python -m esl.res --help\n"
+        "  python -m esl.res --num-actions 3 --full --out-dir outputs/flagship\n"
+        "\n"
+        "See README.md for the full reproduction map."
     )
-    _, _, _, _, rd = run_esl(cfg, run_dir=args.out)
-    plot_run(rd)
 
 
 if __name__ == "__main__":

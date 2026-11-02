@@ -25,7 +25,7 @@ from esl.experiments.figure1_dynamic_adaptation import (
     build_type_shifting_schedule,
 )
 from esl.experiments.figure1_learning_curves import _task_payoff
-from esl.experiments.figure_style import publication_figure_dpi
+from esl.experiments.figure_style import publication_figure_dpi, apply_ylabel_lower_better, fix_rotated_ylabel_arrows
 from esl.experiments.stats_ci import mean_std_ci95
 from esl.prototypes import batch_weighted_prototype_gradient, likelihoods, stable_softmax
 
@@ -321,19 +321,20 @@ def _plot_figure(records: list[dict[str, Any]], summary_rows: list[dict[str, Any
     norm = _aggregate_timeseries(records, "prototype_norm")
     movement = _aggregate_timeseries(records, "prototype_step_size")
     entropy = _aggregate_timeseries(records, "mean_belief_entropy")
-    fig, axes = plt.subplots(2, 2, figsize=(11.5, 8.2))
-    ax_a, ax_b, ax_c, ax_d = axes.reshape(-1)
+    fig, axes = plt.subplots(1, 4, figsize=(16, 3.5))
+    ax_a, ax_b, ax_c, ax_d = axes
     panels = [
-        (ax_a, "(a)", "Prototype dynamics remain bounded", r"$\|\Theta\|_F$"),
-        (ax_b, "(b)", "Updates persist without divergence", r"$\|\Delta \Theta\|_F$"),
-        (ax_c, "(c)", "Belief-state regime formation", "Normalized belief entropy"),
-        (ax_d, "(d)", "Stable distributions in late regime", "Adjacent-window JSD ↓"),
+        (ax_a, "(a)", "Bounded prototypes", r"$\|\Theta\|_F$"),
+        (ax_b, "(b)", "Stable movement", r"$\|\Delta \Theta\|_F$"),
+        (ax_c, "(c)", "Belief stabilization", "Belief entropy"),
+        (ax_d, "(d)", "Distributional stability", "Adjacent-window JSD ↓"),
     ]
     for ax, label, title, ylabel in panels:
-        ax.text(0.0, 1.05, label, transform=ax.transAxes, fontsize=15, fontweight="bold", va="bottom")
-        ax.set_title(title, fontsize=13, fontweight="bold", pad=8)
-        ax.set_ylabel(ylabel)
+        ax.text(-0.07, 1.05, label, transform=ax.transAxes, fontsize=12, fontweight="bold", va="bottom", clip_on=False)
+        ax.set_title(title, fontsize=11, fontweight="bold", pad=8)
+        apply_ylabel_lower_better(ax, fix_rotated_ylabel_arrows(ylabel), fontsize=10)
         ax.grid(alpha=0.25)
+        ax.tick_params(labelsize=8)
     for ax, series, smooth in ((ax_a, norm, False), (ax_b, movement, True), (ax_c, entropy, False)):
         x = np.asarray([r["slow_step"] for r in series], dtype=np.float64)
         mean = np.asarray([r["mean"] for r in series], dtype=np.float64)
@@ -343,9 +344,9 @@ def _plot_figure(records: list[dict[str, Any]], summary_rows: list[dict[str, Any
             mean = _rolling(mean, rolling_window)
             lo = _rolling(lo, rolling_window)
             hi = _rolling(hi, rolling_window)
-        ax.plot(x, mean, color="#1f77b4", linewidth=2.0)
-        ax.fill_between(x, lo, hi, color="#1f77b4", alpha=0.2)
-        ax.set_xlabel("Slow update")
+        ax.plot(x, mean, color="#1f77b4", linewidth=1.8)
+        ax.fill_between(x, lo, hi, color="#1f77b4", alpha=0.16)
+        ax.set_xlabel("Slow update", fontsize=9)
     bars = [
         ("Prototype usage JSD", _metric_ci(summary_rows, "late_usage_jsd_mean")),
         ("Action distribution JSD", _metric_ci(summary_rows, "late_action_jsd_mean")),
@@ -358,11 +359,12 @@ def _plot_figure(records: list[dict[str, Any]], summary_rows: list[dict[str, Any
             for i in range(len(bars))
         ]
     ).T
-    ax_d.bar(x, means, yerr=yerr, capsize=4, color=["#4c72b0", "#55a868"])
-    ax_d.set_xticks(x, [b[0] for b in bars], rotation=15, ha="right")
-    fig.tight_layout()
+    ax_d.bar(x, means, yerr=yerr, capsize=4, color=["#4c72b0", "#55a868"], width=0.68)
+    ax_d.set_xticks(x, ["Prototype\nusage", "Action\ndistribution"], rotation=0, ha="center")
+    fig.subplots_adjust(left=0.055, right=0.995, bottom=0.22, top=0.82, wspace=0.25)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=publication_figure_dpi())
+    fig.savefig(path, dpi=publication_figure_dpi(), bbox_inches="tight")
+    fig.savefig(path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 

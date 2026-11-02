@@ -1,0 +1,31 @@
+{
+  "name": "figure7_rm_prespecified_diagnostic",
+  "purpose": "Finite-horizon Robbins-Monro prototype diagnostic. Not a verification of Theorem 1.",
+  "games": ["ipd", "stag_hunt", "matching_pennies"],
+  "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "target_slow_updates": 80,
+  "rm_c": 0.5,
+  "gamma_exponent": -0.9,
+  "gamma_formula": "gamma_m = 0.5 * (m + 1) ** -0.9",
+  "eta_reg": 0.001,
+  "batch_mode": "growing",
+  "batch_formula": "M_m = ceil(50 * (m + 1) ** 0.2)",
+  "batch_base": 50,
+  "batch_exponent": 0.2,
+  "final_flush_incomplete_batch": false,
+  "smoothing": "none",
+  "interaction_protocol": "type_shifting as in esl.experiments.figure4_rm_dynamics / figure3_dynamics",
+  "switch_interval": 200,
+  "switch_hazard": 0.01,
+  "k_prototypes": 3,
+  "action_dim": 2,
+  "lambda_br": 2.0,
+  "init": "_esl_initial_prototypes(seed + 29001) from figure3_dynamics",
+  "does_not_modify": [
+    "ESL git",
+    "Overleaf",
+    "existing experimental outputs",
+    "other figures",
+    "captions"
+  ]
+}

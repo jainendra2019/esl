@@ -1,0 +1,114 @@
+{
+  "tuning": {
+    "dev_seeds": [
+      0,
+      1,
+      2
+    ],
+    "lambda_grid": [
+      0.0,
+      0.5,
+      2.0,
+      5.0,
+      10.0
+    ],
+    "eta_grid": [
+      0.01,
+      0.03,
+      0.1,
+      0.3,
+      1.0
+    ],
+    "frozen_lambda": 10.0,
+    "frozen_eta": 1.0,
+    "selection_criterion": "minimize mean PSR on development cells",
+    "comparable_tuning_budget": "same development seeds; one scalar hyperparameter each (\u03bb for ESL decision-tuned; \u03b7 for OMD); same PSR criterion"
+  },
+  "primary_held_out_seeds_3_9": {
+    "n": 84,
+    "per_opponent_minus_esl_star": {
+      "n": 84,
+      "missing": 0,
+      "mean_delta": 29.944589146999935,
+      "ci95_lo": 13.792863472207264,
+      "ci95_hi": 48.07397529072643,
+      "se": 8.903757375437426,
+      "dz": 0.36694873816240386,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "global_minus_esl_star": {
+      "n": 84,
+      "missing": 0,
+      "mean_delta": 13.745221796640548,
+      "ci95_lo": -2.9069436556805335,
+      "ci95_hi": 32.66606467760081,
+      "se": 9.13475704171196,
+      "dz": 0.16417805572673144,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "per_opponent_minus_esl_default": {
+      "n": 84,
+      "missing": 0,
+      "mean_delta": -55.79725556570533,
+      "ci95_lo": -76.29919761551419,
+      "ci95_hi": -32.884053638667325,
+      "se": 11.166561179743582,
+      "dz": -0.5451973617712403,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "esl_star_minus_esl_default": {
+      "n": 84,
+      "missing": 0,
+      "mean_delta": -85.74184471270529,
+      "ci95_lo": -96.1203065974281,
+      "ci95_hi": -74.95549059145193,
+      "se": 5.338742357012712,
+      "dz": -1.7523232258596961,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    }
+  },
+  "secondary_descriptive_seeds_0_9": {
+    "n": 120,
+    "disclosure": "includes development seeds 0\u20132 used to freeze \u03bb* and \u03b7",
+    "per_opponent_minus_esl_star": {
+      "n": 120,
+      "missing": 0,
+      "mean_delta": 27.427307475380143,
+      "ci95_lo": 14.01377562001367,
+      "ci95_hi": 42.35616435585717,
+      "se": 7.361849711917069,
+      "dz": 0.3400991957129529,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "global_minus_esl_star": {
+      "n": 120,
+      "missing": 0,
+      "mean_delta": 11.365916400975683,
+      "ci95_lo": -2.6545620051209027,
+      "ci95_hi": 27.414460313206305,
+      "se": 7.709795734255919,
+      "dz": 0.13457703710341623,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "per_opponent_minus_esl_default": {
+      "n": 120,
+      "missing": 0,
+      "mean_delta": -57.5050752745242,
+      "ci95_lo": -74.99982796265061,
+      "ci95_hi": -38.38864267822423,
+      "se": 9.473314494872557,
+      "dz": -0.5541324689110867,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    },
+    "esl_star_minus_esl_default": {
+      "n": 120,
+      "missing": 0,
+      "mean_delta": -84.93238274990435,
+      "ci95_lo": -93.32100363072001,
+      "ci95_hi": -76.40193161230475,
+      "se": 4.334308563483367,
+      "dz": -1.7888044199526216,
+      "note": "positive \u0394 \u21d2 left higher/worse PSR than right"
+    }
+  }
+}

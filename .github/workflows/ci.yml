@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e .
+      - name: Import check
+        run: python -c "import esl, esl.res.categorical_cell, esl.res.benchmark"
+      - name: Tests
+        run: python -m pytest -q
+      - name: Benchmark hashes and regeneration
+        run: python reproducibility/verify_benchmark_freeze.py --allow-regen-mismatch
+      - name: Release numbers and smoke
+        run: python scripts/verify_release.py --allow-regen-mismatch
+      - name: Tables and figures
+        run: |
+          python scripts/reproduce_tables.py
+          python scripts/reproduce_figures.py

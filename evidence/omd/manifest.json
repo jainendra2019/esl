@@ -1,0 +1,63 @@
+{
+  "protocol": "clean_3x3_omd_bakeoff_held_out_primary",
+  "cell_unit": "one cell = (instance_id, seed); focal role fixed to row (not a crossed factor)",
+  "num_games": 12,
+  "focal_role": "row",
+  "horizon": 1000,
+  "p_obs": 1.0,
+  "obs_noise": 0.0,
+  "dev_seeds": [
+    0,
+    1,
+    2
+  ],
+  "primary_seeds": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "secondary_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "primary_n": 84,
+  "secondary_n": 120,
+  "lambda_grid": [
+    0.0,
+    0.5,
+    2.0,
+    5.0,
+    10.0
+  ],
+  "eta_grid": [
+    0.01,
+    0.03,
+    0.1,
+    0.3,
+    1.0
+  ],
+  "frozen_lambda_star": 10.0,
+  "frozen_eta": 1.0,
+  "esl_default_lambda": 2.0,
+  "selection_criterion": "minimize mean PSR on seeds 0\u20132",
+  "comparable_tuning": true,
+  "primary_scope": "per_opponent",
+  "secondary_scope": "global",
+  "psr_definition": "POST_SWITCH_PSR_SUM",
+  "feedback": "full-information U[:, a_opp] after observing opponent action",
+  "identity": "opponent id j protocol-visible",
+  "esl_default_source": "outputs/res/eval/expanded_adaptation/symmetric/cells.csv",
+  "note": "Primary confirmatory inference uses seeds 3\u20139 only. Secondary n=120 is descriptive and reuses the tuning slice."
+}

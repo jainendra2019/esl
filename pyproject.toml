@@ -4,18 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "esl"
-version = "0.1.0"
-dependencies = ["numpy>=1.20", "scipy>=1.7", "matplotlib>=3.5"]
+version = "1.0.0"
+description = "Epistemic Social Learning: camera-ready code for the NeurIPS 2026 paper"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24,<3",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+ppo = ["torch"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["esl*"]
+include = ["esl*", "esl_analysis*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]
 markers = [
     "verification: unit and integration algorithm correctness",
-    "validation: end-to-end ESL behavior vs PRD",
+    "validation: end-to-end ESL behavior",
     "edge: robustness and degenerate inputs",
     "slow: long ESL runs (excluded from default collection unless --runslow)",
 ]

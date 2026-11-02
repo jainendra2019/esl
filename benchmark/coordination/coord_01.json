@@ -1,0 +1,33 @@
+{
+  "instance_id": "coord_01",
+  "family": "coordination",
+  "num_actions": 2,
+  "payoff_row": [
+    [
+      4.0,
+      0.0
+    ],
+    [
+      3.0,
+      2.0
+    ]
+  ],
+  "payoff_col": [
+    [
+      4.0,
+      3.0
+    ],
+    [
+      0.0,
+      2.0
+    ]
+  ],
+  "generator_seed": 20260725,
+  "notes": "paper_stag_hunt",
+  "params": {
+    "T": 3.0,
+    "R": 4.0,
+    "P": 2.0,
+    "S": 0.0
+  }
+}

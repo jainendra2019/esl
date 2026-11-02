@@ -1,0 +1,2 @@
+Official PPO-PyTorch (MIT). Used only as the PPO baseline adapter.
+https://github.com/nikhilbarhate99/PPO-PyTorch

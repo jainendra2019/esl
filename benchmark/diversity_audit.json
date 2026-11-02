@@ -1,0 +1,14 @@
+{
+  "n_total": 24,
+  "n_2x2": 12,
+  "n_3x3": 12,
+  "diversity_min_pairwise": {
+    "adversarial_A2": 3.0265439357881725,
+    "adversarial_A3": 1.9798215935340548,
+    "cooperative_A2": 1.2109703831416816,
+    "cooperative_A3": 1.6531797267520525,
+    "coordination_A2": 1.5430420722652731,
+    "coordination_A3": 0.8277621663576695
+  },
+  "manifest": "benchmark/manifest.json"
+}

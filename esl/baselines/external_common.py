@@ -74,6 +74,9 @@ class MatrixGameTask:
     pd_r: float = 3.0
     pd_p: float = 1.0
     pd_s: float = 0.0
+    # Optional free-form matrices (RES / custom). When set, overrides payoff_game / PD params.
+    payoff_row: tuple[tuple[float, ...], ...] | None = None
+    payoff_col: tuple[tuple[float, ...], ...] | None = None
 
 
 @dataclass(frozen=True)

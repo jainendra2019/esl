@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "description": "Fixed RES benchmark suite. Interaction regime \u2260 payoff realization. Instances were generated once under family constraints with a diversity filter; experiments must load these files rather than resampling.",
+  "generator_module": "esl.res.benchmark",
+  "n_instances": 24,
+  "instances": [
+    {
+      "instance_id": "coop_01",
+      "family": "cooperative",
+      "num_actions": 2,
+      "path": "cooperative/coop_01.json"
+    },
+    {
+      "instance_id": "coop_02",
+      "family": "cooperative",
+      "num_actions": 2,
+      "path": "cooperative/coop_02.json"
+    },
+    {
+      "instance_id": "coop_03",
+      "family": "cooperative",
+      "num_actions": 2,
+      "path": "cooperative/coop_03.json"
+    },
+    {
+      "instance_id": "coop_04",
+      "family": "cooperative",
+      "num_actions": 2,
+      "path": "cooperative/coop_04.json"
+    },
+    {
+      "instance_id": "coord_01",
+      "family": "coordination",
+      "num_actions": 2,
+      "path": "coordination/coord_01.json"
+    },
+    {
+      "instance_id": "coord_02",
+      "family": "coordination",
+      "num_actions": 2,
+      "path": "coordination/coord_02.json"
+    },
+    {
+      "instance_id": "coord_03",
+      "family": "coordination",
+      "num_actions": 2,
+      "path": "coordination/coord_03.json"
+    },
+    {
+      "instance_id": "coord_04",
+      "family": "coordination",
+      "num_actions": 2,
+      "path": "coordination/coord_04.json"
+    },
+    {
+      "instance_id": "adv_01",
+      "family": "adversarial",
+      "num_actions": 2,
+      "path": "adversarial/adv_01.json"
+    },
+    {
+      "instance_id": "adv_02",
+      "family": "adversarial",
+      "num_actions": 2,
+      "path": "adversarial/adv_02.json"
+    },
+    {
+      "instance_id": "adv_03",
+      "family": "adversarial",
+      "num_actions": 2,
+      "path": "adversarial/adv_03.json"
+    },
+    {
+      "instance_id": "adv_04",
+      "family": "adversarial",
+      "num_actions": 2,
+      "path": "adversarial/adv_04.json"
+    },
+    {
+      "instance_id": "coop3_01",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_01.json"
+    },
+    {
+      "instance_id": "coop3_02",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_02.json"
+    },
+    {
+      "instance_id": "coop3_03",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_03.json"
+    },
+    {
+      "instance_id": "coop3_04",
+      "family": "cooperative",
+      "num_actions": 3,
+      "path": "cooperative/coop3_04.json"
+    },
+    {
+      "instance_id": "coord3_01",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_01.json"
+    },
+    {
+      "instance_id": "coord3_02",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_02.json"
+    },
+    {
+      "instance_id": "coord3_03",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_03.json"
+    },
+    {
+      "instance_id": "coord3_04",
+      "family": "coordination",
+      "num_actions": 3,
+      "path": "coordination/coord3_04.json"
+    },
+    {
+      "instance_id": "adv3_01",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_01.json"
+    },
+    {
+      "instance_id": "adv3_02",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_02.json"
+    },
+    {
+      "instance_id": "adv3_03",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_03.json"
+    },
+    {
+      "instance_id": "adv3_04",
+      "family": "adversarial",
+      "num_actions": 3,
+      "path": "adversarial/adv3_04.json"
+    }
+  ]
+}

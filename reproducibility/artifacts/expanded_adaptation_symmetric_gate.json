@@ -1,0 +1,54 @@
+{
+  "label": "expanded_adaptation_symmetric_m2_plus_ppo",
+  "protocol": {
+    "focal_agent_id": 0,
+    "num_opponents": 3,
+    "opponent_ids": [
+      1,
+      2,
+      3
+    ],
+    "k_types": 3,
+    "num_actions_canonical": 3,
+    "horizon": 1000,
+    "h_window": 100,
+    "switch_interval": 200,
+    "switch_hazard": 0.01,
+    "primary_metric": "psr",
+    "secondary_metrics": [
+      "dpr",
+      "lte_auc",
+      "early_gap_auc"
+    ]
+  },
+  "methods": [
+    "ESL",
+    "PPO",
+    "Fixed-K Bayesian",
+    "SA-FP",
+    "FP",
+    "SOM",
+    "Online EM"
+  ],
+  "excluded": [
+    "OMD/MWU"
+  ],
+  "source_csv": "outputs/res/eval/baseline_a3_refresh/symmetric/baseline_sym_cells.csv",
+  "source_sha256": "caf2e5513feb1e4b769787174cc0079956c52a136cc53d9cdf895d9e24aa7c9c",
+  "n_cells": 840,
+  "integrity": {
+    "expected_per_method": 120,
+    "methods_ok": true,
+    "missing_or_short": {},
+    "n_families": {
+      "adversarial": 4,
+      "cooperative": 4,
+      "coordination": 4
+    },
+    "n_instances": 12
+  },
+  "figure1_replacement_gate": true,
+  "freeze_note": "Do not modify benchmark suite, hyperparameters, switching process, or baseline implementations after this gate without invalidating/restarting M2.",
+  "ppo_included": true,
+  "ppo_cells": 120
+}

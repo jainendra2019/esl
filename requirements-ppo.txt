@@ -1,2 +1,0 @@
-# Optional: official PPO-PyTorch adapter (Milestone 2A+). Not required for core ESL tests.
-torch>=2.0

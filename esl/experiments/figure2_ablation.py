@@ -23,19 +23,21 @@ from esl.experiments.figure1_dynamic_adaptation import (
     K_TYPES,
     LAMBDA_BR,
     ONLINE_EM_WINDOW,
+    SA_FP_DEFAULT_P_STAY,
     compute_dynamic_prediction_regret,
     compute_latent_tracking_error,
     compute_post_switch_oracle_regret,
     build_type_shifting_schedule,
+    markov_predict,
     true_type_distributions_mature,
 )
 from esl.experiments.figure1_learning_curves import _fixed_prototypes, _task_payoff
-from esl.experiments.figure_style import publication_figure_dpi
+from esl.experiments.figure_style import publication_figure_dpi, apply_ylabel_lower_better, fix_rotated_ylabel_arrows
 from esl.experiments.stats_ci import mean_std_ci95
 from esl.metrics import cross_entropy
 from esl.prototypes import batch_weighted_prototype_gradient, likelihoods, stable_softmax
 
-AblationMethod = Literal["ESL", "No-Sharing", "Fixed-K Bayesian", "No-Belief", "Online EM"]
+AblationMethod = Literal["ESL", "No-Sharing", "Fixed-K Bayesian", "SA-FP", "No-Belief", "Online EM"]
 
 EARLY_AUC_WINDOW = 30
 METHOD_ORDER: tuple[AblationMethod, ...] = (
@@ -52,6 +54,7 @@ METHOD_COLORS: dict[str, str] = {
     "ESL": "#1f77b4",
     "No-Sharing": "#c44e52",
     "Fixed-K Bayesian": "#55a868",
+    "SA-FP": "#17becf",
     "No-Belief": "#ccb974",
     "Online EM": "#7f7f7f",
 }
@@ -59,6 +62,7 @@ PLOT_LABELS: dict[str, str] = {
     "ESL": "ESL",
     "No-Sharing": "No-sharing",
     "Fixed-K Bayesian": "Fixed-K",
+    "SA-FP": "SA-FP",
     "No-Belief": "No-belief",
     "Online EM": "EM",
 }
@@ -75,6 +79,7 @@ class AblationState:
     per_opponent_batch: dict[int, list[tuple[int, np.ndarray]]] = field(default_factory=dict)
     em_window: list[tuple[int, int]] = field(default_factory=list)
     last_focal_action: int | None = None
+    p_stay: float = SA_FP_DEFAULT_P_STAY
 
 
 def _softmax(values: np.ndarray, lam: float = 1.0) -> np.ndarray:
@@ -98,8 +103,8 @@ def _bayes_step(prior: np.ndarray, prototypes: np.ndarray, opponent_action: int)
     return belief_ops.update_belief_pair(prior, likelihoods(prototypes, opponent_action), 1e-4, EPS)
 
 
-def _method_state(method: AblationMethod, seed: int) -> AblationState:
-    state = AblationState(method=method, rng=np.random.default_rng(seed))
+def _method_state(method: AblationMethod, seed: int, *, p_stay: float = SA_FP_DEFAULT_P_STAY) -> AblationState:
+    state = AblationState(method=method, rng=np.random.default_rng(seed), p_stay=float(p_stay))
     if method == "ESL":
         state.logits = _esl_initial_prototypes(seed)
         state.beliefs = {opp: np.full(K_TYPES, 1.0 / K_TYPES) for opp in (1, 2, 3)}
@@ -107,7 +112,7 @@ def _method_state(method: AblationMethod, seed: int) -> AblationState:
         state.per_opponent_logits = {opp: _esl_initial_prototypes(seed + 101 * opp) for opp in (1, 2, 3)}
         state.per_opponent_batch = {opp: [] for opp in (1, 2, 3)}
         state.beliefs = {opp: np.full(K_TYPES, 1.0 / K_TYPES) for opp in (1, 2, 3)}
-    elif method == "Fixed-K Bayesian":
+    elif method in ("Fixed-K Bayesian", "SA-FP"):
         state.logits = _fixed_prototypes().copy()
         state.beliefs = {opp: np.full(K_TYPES, 1.0 / K_TYPES) for opp in (1, 2, 3)}
     elif method == "No-Belief":
@@ -152,6 +157,8 @@ def _predicted_opponent_probs(state: AblationState, opponent_id: int) -> np.ndar
         belief = np.full(K_TYPES, 1.0 / K_TYPES)
     else:
         belief = state.beliefs[opponent_id]
+        if state.method == "SA-FP":
+            belief = markov_predict(belief, state.p_stay)
     return belief @ stable_softmax(logits)
 
 
@@ -219,6 +226,10 @@ def _update_state(state: AblationState, *, opponent_id: int, opponent_action: in
     elif state.method == "Fixed-K Bayesian":
         assert state.logits is not None
         state.beliefs[opponent_id] = _bayes_step(state.beliefs[opponent_id], state.logits, opponent_action)
+    elif state.method == "SA-FP":
+        assert state.logits is not None
+        prior = markov_predict(state.beliefs[opponent_id], state.p_stay)
+        state.beliefs[opponent_id] = _bayes_step(prior, state.logits, opponent_action)
     elif state.method == "No-Belief":
         assert state.logits is not None
         uniform = np.full(K_TYPES, 1.0 / K_TYPES)
@@ -382,16 +393,15 @@ def _gate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def _plot_figure(metric_rows: list[dict[str, Any]], recovery_rows: list[dict[str, Any]], out_path: Path) -> None:
     metrics = _metrics_by_method(metric_rows)
     row_by_key = {(r["method"], r["metric"]): r for r in metric_rows}
-    fig = plt.figure(figsize=(11.8, 8.4))
-    gs = fig.add_gridspec(2, 2)
-    ax_a = fig.add_subplot(gs[0, 0])
-    ax_b1 = fig.add_subplot(gs[0, 1])
-    ax_b2 = fig.add_subplot(gs[1, 0])
-    ax_c = fig.add_subplot(gs[1, 1])
+    fig, axes = plt.subplots(1, 4, figsize=(16, 3.5))
+    ax_a = axes[0]
+    ax_b1 = axes[1]
+    ax_b2 = axes[2]
+    ax_c = axes[3]
     for ax, label in ((ax_a, "(a)"), (ax_b1, "(b)"), (ax_b2, "(c)"), (ax_c, "(d)")):
-        ax.text(-0.05, 1.10, label, transform=ax.transAxes, fontsize=15, fontweight="bold", va="bottom", clip_on=False)
+        ax.text(-0.07, 1.05, label, transform=ax.transAxes, fontsize=12, fontweight="bold", va="bottom", clip_on=False)
 
-    # Panel ordering enforces causal interpretation: PSR -> DPR -> LTE -> early dynamics.
+    # Panel ordering enforces causal interpretation: PSR to DPR to LTE to early dynamics.
     def bar_panel(
         ax: plt.Axes,
         *,
@@ -413,52 +423,84 @@ def _plot_figure(metric_rows: list[dict[str, Any]], recovery_rows: list[dict[str
             ],
             dtype=np.float64,
         ).T
-        bars = ax.bar(x, means, yerr=yerr, color=[METHOD_COLORS[m] for m in methods], capsize=4)
+        bars = ax.bar(x, means, yerr=yerr, color=[METHOD_COLORS[m] for m in methods], capsize=4, width=0.68)
         for method, bar in zip(methods, bars):
             if method == "ESL":
                 bar.set_edgecolor("black")
-                bar.set_linewidth(1.5)
+                bar.set_linewidth(1.2)
         ax.set_xticks(x, labels, rotation=20, ha="right")
-        ax.set_title(title, fontsize=13, fontweight="bold", pad=8)
-        ax.set_ylabel(ylabel, fontsize=11)
+        ax.set_title(title, fontsize=11, fontweight="bold", pad=8)
+        apply_ylabel_lower_better(ax, fix_rotated_ylabel_arrows(ylabel), fontsize=10)
         ax.grid(axis="y", alpha=0.25)
+        ax.tick_params(labelsize=8)
 
     bar_panel(
         ax_a,
         methods=METHOD_ORDER,
         metric="psr",
-        title="Removing components increases adaptation cost",
+        title="Post-switch regret",
         ylabel="PSR ↓",
     )
     bar_panel(
         ax_b1,
         methods=METHOD_ORDER,
         metric="dpr",
-        title="Decision-relevant prediction drives adaptation",
+        title="Behavior prediction regret",
         ylabel="DPR ↓",
     )
-    bar_panel(
-        ax_b2,
-        methods=LTE_PANEL_METHODS,
-        metric="lte_postswitch_mean",
-        title="Identification alone is insufficient",
-        ylabel="LTE ↓",
+    lte_x = np.arange(len(METHOD_ORDER))
+    lte_labels = [PLOT_LABELS[m] for m in METHOD_ORDER]
+    lte_values = [metrics[m]["lte_postswitch_mean"] for m in LTE_PANEL_METHODS]
+    lte_placeholder = max(lte_values, default=1.0) * 0.04
+    for idx, method in enumerate(METHOD_ORDER):
+        if method in LTE_PANEL_METHODS:
+            mean = metrics[method]["lte_postswitch_mean"]
+            low = float(row_by_key[(method, "lte_postswitch_mean")]["ci95_low"])
+            high = float(row_by_key[(method, "lte_postswitch_mean")]["ci95_high"])
+            yerr = np.array([[max(mean - low, 0.0)], [max(high - mean, 0.0)]], dtype=np.float64)
+            bar = ax_b2.bar([idx], [mean], yerr=yerr, color=METHOD_COLORS[method], capsize=4, width=0.68, alpha=0.9)[0]
+            if method == "ESL":
+                bar.set_edgecolor("black")
+                bar.set_linewidth(1.2)
+        else:
+            ax_b2.bar(
+                [idx],
+                [0.0],
+                width=0.68,
+                facecolor="white",
+                edgecolor="#999999",
+                hatch="///",
+                linewidth=1.0,
+                alpha=0.7,
+            )
+            ax_b2.text(idx, lte_placeholder * 1.45, "N/A", ha="center", va="bottom", fontsize=7, color="#666666", alpha=0.6)
+    ax_b2.set_xticks(lte_x, lte_labels, rotation=20, ha="right")
+    ax_b2.set_title("Latent-state identification", fontsize=11, fontweight="bold", pad=8)
+    apply_ylabel_lower_better(ax_b2, "LTE", fontsize=10)
+    ax_b2.set_ylim(0.0, max(lte_values, default=1.0) * 1.25)
+    ax_b2.text(
+        0.5,
+        -0.34,
+        "Defined only for latent models",
+        ha="center",
+        va="top",
+        transform=ax_b2.transAxes,
+        fontsize=7,
+        color="#555555",
     )
+    ax_b2.grid(axis="y", alpha=0.25)
+    ax_b2.tick_params(labelsize=8)
     bar_panel(
         ax_c,
         methods=METHOD_ORDER,
         metric="early_gap_auc",
-        title="Early recovery similar, cumulative cost differs",
-        ylabel="Early AUC ↓",
+        title="Early recovery",
+        ylabel="Early gap ↓",
     )
-    handles = [
-        plt.Line2D([0], [0], marker="s", color="none", markerfacecolor=METHOD_COLORS[m], markersize=8, label=PLOT_LABELS[m])
-        for m in METHOD_ORDER
-    ]
-    fig.legend(handles=handles, loc="upper center", ncol=len(METHOD_ORDER), frameon=False, bbox_to_anchor=(0.5, 1.01))
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.subplots_adjust(left=0.055, right=0.995, bottom=0.28, top=0.82, wspace=0.25)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=publication_figure_dpi())
+    fig.savefig(out_path, dpi=publication_figure_dpi(), bbox_inches="tight")
+    fig.savefig(out_path.with_suffix(".png"), dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
