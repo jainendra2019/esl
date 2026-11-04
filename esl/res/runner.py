@@ -48,10 +48,57 @@ FLAGSHIP_A3_METHODS: tuple[str, ...] = (
     "SOM",
     "Online EM",
 )
+# Same as flagship without PPO (for environments without PyTorch).
+FLAGSHIP_A3_METHODS_NO_PPO: tuple[str, ...] = tuple(
+    m for m in FLAGSHIP_A3_METHODS if m != "PPO"
+)
+METHOD_SET_CHOICES: tuple[str, ...] = ("tier1", "flagship-a3", "flagship-a3-no-ppo")
 RETRIEVABLE_A3_METHODS: tuple[str, ...] = ("ESL", "Fixed-K Bayesian", "SA-FP", "FP", "SOM")
 RUN_NEW_A3_METHODS: tuple[str, ...] = ("Online EM", "OMD/MWU", "HMM-L")
 # Bake-off-only allow-list (not injected into flagship packaging).
 HMML_BAKEOFF_METHODS: tuple[str, ...] = ("ESL", "SA-FP", "Online EM", "HMM-L")
+
+
+def resolve_method_set(name: str, *, num_actions: int) -> tuple[str, ...]:
+    """Map a CLI ``--method-set`` name to an ordered method tuple.
+
+    Flagship sets are restricted to the three-action protocol. ``tier1`` preserves
+    the historical five-method default for both A=2 and A=3.
+    """
+    key = str(name).strip().lower()
+    if key == "tier1":
+        return TIER1_METHODS
+    if key in ("flagship-a3", "flagship-a3-no-ppo"):
+        if int(num_actions) != 3:
+            raise ValueError(
+                f"--method-set {key} is only supported for --num-actions 3 "
+                f"(got num_actions={num_actions})"
+            )
+        if key == "flagship-a3":
+            return FLAGSHIP_A3_METHODS
+        return FLAGSHIP_A3_METHODS_NO_PPO
+    raise ValueError(
+        f"Unknown --method-set {name!r}; choose one of {list(METHOD_SET_CHOICES)}"
+    )
+
+
+def require_torch_for_ppo() -> None:
+    """Fail fast with an actionable message when PPO is requested without PyTorch."""
+    try:
+        import torch  # noqa: F401
+    except ImportError as exc:
+        raise SystemExit(
+            "PyTorch is required for --method-set flagship-a3 (PPO). "
+            "Install torch (see README / requirements for optional PPO deps), "
+            "or use --method-set flagship-a3-no-ppo."
+        ) from exc
+
+
+def _aggregate_method_order() -> list[str]:
+    """Stable order covering tier-1, flagship (incl. PPO), and baseline-A3 methods."""
+    return list(
+        dict.fromkeys([*FLAGSHIP_A3_METHODS, *TIER1_METHODS, *BASELINE_A3_METHODS])
+    )
 
 
 def game_spec_to_task(spec: GameSpec) -> MatrixGameTask:
@@ -190,7 +237,7 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], columns: Sequence[str]) -
 def aggregate_family_metrics(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     families = sorted({str(s["family"]) for s in summaries})
-    method_order = list(dict.fromkeys([*TIER1_METHODS, *BASELINE_A3_METHODS]))
+    method_order = _aggregate_method_order()
     methods = [m for m in method_order if any(s["method"] == m for s in summaries)]
     for family in families + ["all"]:
         for method in methods:
@@ -275,7 +322,7 @@ def aggregate_all_metrics(summaries: list[dict[str, Any]]) -> list[dict[str, Any
     )
     rows: list[dict[str, Any]] = []
     families = sorted({str(s["family"]) for s in summaries})
-    method_order = list(dict.fromkeys([*TIER1_METHODS, *BASELINE_A3_METHODS]))
+    method_order = _aggregate_method_order()
     methods = [m for m in method_order if any(s["method"] == m for s in summaries)]
     for family in families + ["all"]:
         for method in methods:
@@ -311,7 +358,7 @@ def paired_gaps_all_metrics(summaries: list[dict[str, Any]]) -> list[dict[str, A
         ("Fixed-K Bayesian", "ESL"),
         ("Fixed-K Bayesian", "SA-FP"),
     ]
-    for m in ("OMD/MWU", "Online EM", "SOM", "FP"):
+    for m in ("OMD/MWU", "Online EM", "SOM", "FP", "PPO"):
         if m in present and "ESL" in present:
             pairs.append((m, "ESL"))
     metrics = ("psr", "dpr", "lte_auc", "early_gap_auc")
@@ -505,14 +552,30 @@ def main(argv: Sequence[str] | None = None) -> None:
     p.add_argument("--p-obs", type=float, default=1.0)
     p.add_argument("--obs-noise", type=float, default=0.0)
     p.add_argument("--full", action="store_true", help="Paper-like seeds 0..9 and horizon 1000")
+    p.add_argument(
+        "--method-set",
+        type=str,
+        default="tier1",
+        choices=METHOD_SET_CHOICES,
+        help=(
+            "Method suite: 'tier1' (default; 5 methods), "
+            "'flagship-a3' (7 methods including PPO; A=3 only), "
+            "'flagship-a3-no-ppo' (6 methods; A=3 only). "
+            "OMD/MWU is not part of these sets."
+        ),
+    )
     args = p.parse_args(list(argv) if argv is not None else None)
     seeds: Sequence[int] = tuple(range(10)) if args.full else tuple(args.seeds)
     horizon = 1000 if args.full else int(args.horizon)
+    methods = resolve_method_set(args.method_set, num_actions=int(args.num_actions))
+    if "PPO" in methods:
+        require_torch_for_ppo()
     gate = run_res_m1(
         out_dir=args.out_dir,
         benchmark_root=args.benchmark_root,
         seeds=seeds,
         horizon=horizon,
+        methods=methods,
         num_actions=int(args.num_actions),
         p_obs=float(args.p_obs),
         obs_noise=float(args.obs_noise),

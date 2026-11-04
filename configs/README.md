@@ -12,11 +12,28 @@ committed JSON from `benchmark/`; they do not resample payoffs.
 - Horizon T=1000, evaluation window H=100
 - Switch interval 200, switch hazard 0.01
 - Seeds 0–9 (n=120 cells/method)
+- Methods (flagship): ESL, PPO, Fixed-K Bayesian, SA-FP, FP, SOM, Online EM (840 cells). OMD/MWU is a separate held-out protocol.
 - ESL: λ=2, prototype step γ=0.9, batch M=2, p_obs=1, obs_noise=0
 - PSR/DPR: inclusive `0 ≤ τ ≤ H`
 - LTE: Hungarian alignment of pre-observation beliefs, mean over `τ < H`
 
-Entry point: `python -m esl.res --num-actions 3 --full --out-dir outputs/flagship`
+Entry point (requires optional PyTorch for PPO):
+
+```bash
+python -m esl.res --num-actions 3 --full \
+  --method-set flagship-a3 \
+  --out-dir outputs/flagship
+```
+
+Without PPO (`flagship-a3-no-ppo`, 720 cells):
+
+```bash
+python -m esl.res --num-actions 3 --full \
+  --method-set flagship-a3-no-ppo \
+  --out-dir outputs/flagship_no_ppo
+```
+
+The CLI default `--method-set tier1` keeps the historical five-method suite and does **not** match the published seven-method flagship.
 
 ## Held-out OMD/MWU
 
@@ -38,5 +55,5 @@ Entry point: `python scripts/run_omd_clean_psr.py`
 | K ∈ {2,3,5} | `python scripts/run_k_sensitivity.py` |
 | Opponent count | `python -m esl.res.opponent_count_sensitivity` |
 | Calibrated shifts | `python scripts/run_controlled_behavioral_shift.py` |
-| Visibility / noise | `python -m esl.res --num-actions 3 --full --p-obs …` / `--obs-noise …` |
+| Visibility / noise | `python -m esl.res --num-actions 3 --full --method-set flagship-a3 --p-obs …` / `--obs-noise …` |
 | Diminishing-step RM | `python -m esl.experiments.figure4_rm_dynamics` |
