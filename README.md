@@ -97,10 +97,22 @@ The held-out OMD comparison is a **separate** protocol (development seeds 0–2,
 
 Full paper-scale runs are CPU-heavy (twelve games × ten seeds × methods × T=1000). Wall-clock time is hours to days depending on cores and whether PPO/torch is included. Cross-platform bitwise identity of new simulation output is **not** claimed; accepted numbers are those in `evidence/`.
 
-Headline twelve-game adaptation (λ=2; includes ESL, Fixed-K, SA-FP, Online EM; PPO if torch is installed):
+Headline twelve-game adaptation (λ=2; seven methods: ESL, PPO, Fixed-K Bayesian, SA-FP, FP, SOM, Online EM). Use an explicit `--method-set` — the default `tier1` set is only five methods and does **not** reproduce the published flagship suite. This reruns simulations; it is distinct from recomputing published tables from frozen `evidence/` (see above).
+
+With PPO (requires optional PyTorch):
 
 ```bash
-python -m esl.res --num-actions 3 --full --out-dir outputs/flagship
+python -m esl.res --num-actions 3 --full \
+  --method-set flagship-a3 \
+  --out-dir outputs/flagship
+```
+
+Without PPO:
+
+```bash
+python -m esl.res --num-actions 3 --full \
+  --method-set flagship-a3-no-ppo \
+  --out-dir outputs/flagship_no_ppo
 ```
 
 Held-out OMD/MWU comparison:
@@ -126,11 +138,13 @@ python scripts/run_controlled_behavioral_shift.py --out outputs/mechanistic_anal
 python scripts/run_k_sensitivity.py --out outputs/k_sensitivity
 ```
 
-Observation noise / missingness uses the same categorical cell with `--p-obs` and `--obs-noise`:
+Observation noise / missingness uses the same categorical cell with `--p-obs` and `--obs-noise`. Pass an explicit `--method-set` when you want the seven-method (or six-method no-PPO) flagship suite; otherwise the default `tier1` five-method set is used:
 
 ```bash
-python -m esl.res --num-actions 3 --full --p-obs 0.5 --out-dir outputs/visibility
-python -m esl.res --num-actions 3 --full --obs-noise 0.1 --out-dir outputs/noise
+python -m esl.res --num-actions 3 --full --method-set flagship-a3 \
+  --p-obs 0.5 --out-dir outputs/visibility
+python -m esl.res --num-actions 3 --full --method-set flagship-a3 \
+  --obs-noise 0.1 --out-dir outputs/noise
 ```
 
 Population recovery (Algorithm 1, N=20 and N=100):
